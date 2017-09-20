@@ -13,8 +13,8 @@
 	.interface {
 		z-index: 100000;
 		position: absolute;
-		left: 0; top: 0;
-		padding: 20px;
+		right: 5px; top: 5px;
+		padding: 10px;
 		background-color: rgba(0,0,0,.5);
 	}
 	canvas {
@@ -24,16 +24,20 @@
 		width: 100%;
 		height: 100%;
 	}
+	.hidden {
+		display: none;
+	}
 	</style>
 </head>
 <body>
 
-<div class="interface">
+<div class="interface ">
+	<button id="run">run</button>
 	<button id="next_frame">next frame</button>
 </div>
 
-
 <script>
+
 (function(){
 
 	/*
@@ -43,11 +47,19 @@
 	Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 	*/
 
+	var state = {
+		current : {},
+		next : {}
+	}
+
+	var running = false;
 	var drawing = false;
 
-	var width = 20, height = 20;
+	var width = 300, height = 200;
 
-	var button = document.getElementById('next_frame');
+	var button1 = document.getElementById('run');
+	var button2 = document.getElementById('next_frame');
+
 	// create canvas
 	var parent = document.getElementsByTagName('body')[0];
 	var canvas = document.createElement('canvas');
@@ -67,39 +79,36 @@
 	var singlePixel = context.createImageData(1,1);
 	var singlePixelData = singlePixel.data;
 
-	console.log(context);
-
 	function toggle(x,y) {
 
-		// get pixel and
-		console.log( x, y );
-
-		var pixel = getPixel(x,y);
-		console.log(pixel);
-
-		if (checkPixelState(pixel)) {
-			drawPixel(x, y, 0, 0, 0);
+		if (getPixel(x, y).state) {
+			setPixelOff(x, y);
 		} else {
-			drawPixel(x, y, 255, 255, 255);
+			setPixelOn(x, y);
 		}
 
 	}
 
-	function getPixelState( x, y ) {
-		return checkPixelState( getPixel(x, y) );
-	}
-
-	function checkPixelState(pixel) {
-		return pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255;
-	}
-
 	function getPixel(x,y) {
+		return state.current[x + "_" + y];
+	}
 
-		var currentPixel = context.getImageData(x, y, 1, 1);
-		var currentPixelData = currentPixel.data;
+	function getPixelNext(x, y) {
+		return state.next[x + "_" + y];
+	}
 
-		return currentPixelData;
+	function setPixelNext(x, y, newState) {
+		state.next[x+"_"+y].state = newState;
+	}
 
+	function setPixelOff(x, y) {
+		state.current[x + "_" + y].state = false;
+		drawPixel(x, y, 255, 255, 255);
+	}
+
+	function setPixelOn(x, y) {
+		state.current[x + "_" + y].state = true;
+		drawPixel(x, y, 0, 0, 0);
 	}
 
 	function drawPixel(x,y,r,g,b) {
@@ -110,29 +119,10 @@
 		singlePixelData[3] = 255;
 		context.putImageData( singlePixel, x, y );
 
-		/*
-		ctx.fillStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
-		ctx.fillRect( x, y, 1, 1 );
-		*/
-
 	}
 
 	function random(low, high) {
 		return Math.random() * high + low;
-	}
-
-	function interval() {
-
-		for(var x = 0; x < width; x++) {
-			for(var y = 0; y < height; y++) {
-
-				var meta = getPixelNeighborCount(x, y);
-				console.log(meta);
-				// drawPixel(x,y,0,0,0);
-
-			}
-		}
-
 	}
 
 	function getPixelNeighborCount(x, y) {
@@ -143,52 +133,41 @@
 		var endY = y + 1 < height - 1 ? y + 1 : height - 1;
 
 		var neighborCount = 0;
+		var neighborsChecked = 0;
 
-		for(var curX = startX; curX < endX; curX++) {
-			for(var curY = startY; curY < endY; curY++) {
-				// console.log( curX, curY, "WE ARE CHECKIN DEM" );
-				// if (pixelStatus)
-				if (curX !== x && curY !== y && getPixelState(curX, curY))
+		for(var curX = startX; curX <= endX; curX++) {
+			for(var curY = startY; curY <= endY; curY++) {
+
+				neighborsChecked++;
+
+				if (!(curX === x && curY === y) && getPixel(curX, curY).state == true) {
 					neighborCount++;
+				}
 			}
 		}
+		//
+		// if (neighborCount > 0)
+		// 	console.log("I FOUND SOMEONE!" + neighborCount + " from " + neighborsChecked);
 
 		return neighborCount;
-
-		/* nah fuck this
-		var neighbors = {
-			tl : false, // (( x > 0 && y > 0 ) ? getPixelState(x - 1 , y - 1) : false),
-			tm : false, // (( y > 0 ) ? getPixelState(x, y - 1) : false),
-			tr : false, // (( x < width - 1 && y > 0 ) ? getPixelState(x + 1, y - 1) : false),
-			ml : false, // (( x > 0 && y > 0 ) ? getPixelState(x - 1 , y - 1) : false),
-			mm : false,
-			mr : false,
-			bl : false, // (( x > 0 && y < height - 1 ) ? getPixelState(x - 1 , y - 1) : false)
-			bm : false, //
-			br : false
-		};
-		if (( x > 0 && y > 0 ))
-		*/
 
 	}
 
 	function handleCanvasClick(eve) {
-
 		eve.preventDefault();
-		// var x = (eve.clientX / eve.target.offsetWidth) * width;
-		// var y = (eve.clientY / eve.target.offsetHeight) * height;
-		// toggle( Math.floor(x), Math.floor(y) );
-
+		var x = (eve.clientX / eve.target.offsetWidth) * width;
+		var y = (eve.clientY / eve.target.offsetHeight) * height;
+		toggle( Math.floor(x), Math.floor(y) );
 	}
 
-	function handleCanvaseMousedown(eve) {
+	function handleCanvasMousedown(eve) {
 		drawing = true;
 		var x = (eve.clientX / eve.target.offsetWidth) * width;
 		var y = (eve.clientY / eve.target.offsetHeight) * height;
 		toggle( Math.floor(x), Math.floor(y) );
 	}
 
-	function handleCanvaseMouseup(eve) {
+	function handleCanvasMouseup(eve) {
 		drawing = false;
 		var x = (eve.clientX / eve.target.offsetWidth) * width;
 		var y = (eve.clientY / eve.target.offsetHeight) * height;
@@ -199,26 +178,122 @@
 
 		var x = (eve.clientX / eve.target.offsetWidth) * width;
 		var y = (eve.clientY / eve.target.offsetHeight) * height;
-		toggle( Math.floor(x), Math.floor(y) );
+
+		if (drawing)
+			setPixelOn( Math.floor(x), Math.floor(y) );
 
 	}
-
-	// var x = (eve.clientX / eve.target.offsetWidth) * width;
-	// var y = (eve.clientY / eve.target.offsetHeight) * height;
 
 	function handleIntervalButtonClick(eve) {
 
 		eve.preventDefault();
-
-		interval();
+		// do no loop
+		interval(true);
 
 	}
 
-	canvas.addEventListener('click', handleCanvasClick)
-	button.addEventListener('click', handleIntervalButtonClick);
-	// setInterval(interval, 250);
+	function handleRunButtonClick(eve) {
 
-})(); // ('body', document, this);
+		eve.preventDefault();
+		// do no loop
+		// running = false;
+		// interval(false);
+		run();
+
+	}
+
+	function init() {
+
+		for(var x = 0; x < width; x++) {
+			for(var y = 0; y < height; y++) {
+				state.current[x+"_"+y] = {state:false};
+				state.next[x+"_"+y] = {state:false};
+			}
+		}
+
+	}
+
+	function run() {
+
+		if(running)
+			return;
+
+		running = true;
+		interval(false);
+	}
+
+	function interval(noloop) {
+
+		for(var x = 0; x < width; x++) {
+			for(var y = 0; y < height; y++) {
+
+				var neighborCount = getPixelNeighborCount(x, y);
+
+				// Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+				if (getPixel(x,y).state == true && neighborCount < 2) {
+					// console.log(x + "," + y + ": fewer than two -- underpopulation die")
+					setPixelNext(x, y, false);
+				}
+
+				// Any live cell with two or three live neighbours lives on to the next generation.
+				else if (getPixel(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
+					// console.log(x + "," + y + ": two or three -- live ok")
+					setPixelNext(x, y, true);
+				}
+
+				// Any live cell with more than three live neighbours dies, as if by overpopulation.
+				else if (getPixel(x,y).state == true && neighborCount > 3) {
+					// console.log(x + "," + y + ": live and three -- overpopulation die")
+					setPixelNext(x, y, false);
+				}
+
+				//Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+				else if (getPixel(x,y).state == false && neighborCount === 3) {
+					// console.log(x + "," + y + ": dead and three -- reproduction add")
+					setPixelNext(x, y, true);
+				}
+
+			}
+		}
+
+		for(var x = 0; x < width; x++) {
+			for(var y = 0; y < height; y++) {
+
+				var curState = getPixel(x, y).state;
+				var nextState = getPixelNext(x, y).state;
+
+				// migrate next state to current state + draw
+
+				if (curState != nextState && nextState == true) {
+					setPixelOn(x, y);
+				}
+
+				else if (curState != nextState && nextState == false) {
+					setPixelOff(x, y);
+				}
+
+			}
+		}
+
+		if (!noloop && running) {
+			setTimeout(interval, 50);
+		}
+
+	}
+
+	// canvas.addEventListener('click', handleCanvasClick)
+	canvas.addEventListener('mousedown', handleCanvasMousedown)
+	canvas.addEventListener('mouseup', handleCanvasMouseup)
+	canvas.addEventListener('mousemove', handleCanvasMousemove)
+
+	button1.addEventListener('click', handleRunButtonClick);
+	button2.addEventListener('click', handleIntervalButtonClick);
+
+	init();
+	// run();
+
+})();
+
 </script>
 </body>
 </html>
