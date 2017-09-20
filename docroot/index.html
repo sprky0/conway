@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+	html,body,canvas {
+		margin: 0;
+		padding: 0;
+	}
+	body {
+		height: 100%;
+		width: 100%;
+	}
+	.interface {
+		z-index: 100000;
+		position: absolute;
+		left: 0; top: 0;
+		padding: 20px;
+		background-color: rgba(0,0,0,.5);
+	}
+	canvas {
+		z-index: 1;
+		position: absolute;
+		left: 0; top: 0;
+		width: 100%;
+		height: 100%;
+	}
+	</style>
+</head>
+<body>
+
+<div class="interface">
+	<button id="next_frame">next frame</button>
+</div>
+
+
+<script>
+(function(){
+
+	/*
+	Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+	Any live cell with two or three live neighbours lives on to the next generation.
+	Any live cell with more than three live neighbours dies, as if by overpopulation.
+	Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+	*/
+
+	var drawing = false;
+
+	var width = 20, height = 20;
+
+	var button = document.getElementById('next_frame');
+	// create canvas
+	var parent = document.getElementsByTagName('body')[0];
+	var canvas = document.createElement('canvas');
+	canvas.width = width;
+	canvas.height = height;
+	parent.appendChild(canvas);
+
+	var context = canvas.getContext('2d');
+
+	// context['imageSmoothingEnabled'] = false;       /* standard */
+	// context['mozImageSmoothingEnabled'] = false;    /* Firefox */
+	// context['oImageSmoothingEnabled'] = false;      /* Opera */
+	// context['webkitImageSmoothingEnabled'] = false; /* Safari */
+	// context['msImageSmoothingEnabled'] = false;     /* IE */
+
+	// temporary pixel for drawing
+	var singlePixel = context.createImageData(1,1);
+	var singlePixelData = singlePixel.data;
+
+	console.log(context);
+
+	function toggle(x,y) {
+
+		// get pixel and
+		console.log( x, y );
+
+		var pixel = getPixel(x,y);
+		console.log(pixel);
+
+		if (checkPixelState(pixel)) {
+			drawPixel(x, y, 0, 0, 0);
+		} else {
+			drawPixel(x, y, 255, 255, 255);
+		}
+
+	}
+
+	function getPixelState( x, y ) {
+		return checkPixelState( getPixel(x, y) );
+	}
+
+	function checkPixelState(pixel) {
+		return pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255;
+	}
+
+	function getPixel(x,y) {
+
+		var currentPixel = context.getImageData(x, y, 1, 1);
+		var currentPixelData = currentPixel.data;
+
+		return currentPixelData;
+
+	}
+
+	function drawPixel(x,y,r,g,b) {
+
+		singlePixelData[0] = r;
+		singlePixelData[1] = g;
+		singlePixelData[2] = b;
+		singlePixelData[3] = 255;
+		context.putImageData( singlePixel, x, y );
+
+		/*
+		ctx.fillStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
+		ctx.fillRect( x, y, 1, 1 );
+		*/
+
+	}
+
+	function random(low, high) {
+		return Math.random() * high + low;
+	}
+
+	function interval() {
+
+		for(var x = 0; x < width; x++) {
+			for(var y = 0; y < height; y++) {
+
+				var meta = getPixelNeighborCount(x, y);
+				console.log(meta);
+				// drawPixel(x,y,0,0,0);
+
+			}
+		}
+
+	}
+
+	function getPixelNeighborCount(x, y) {
+
+		var startX = x > 0 ? x - 1 : 0;
+		var startY = y > 0 ? y - 1 : 0;
+		var endX = x + 1 < width - 1 ? x + 1 : width - 1;
+		var endY = y + 1 < height - 1 ? y + 1 : height - 1;
+
+		var neighborCount = 0;
+
+		for(var curX = startX; curX < endX; curX++) {
+			for(var curY = startY; curY < endY; curY++) {
+				// console.log( curX, curY, "WE ARE CHECKIN DEM" );
+				// if (pixelStatus)
+				if (curX !== x && curY !== y && getPixelState(curX, curY))
+					neighborCount++;
+			}
+		}
+
+		return neighborCount;
+
+		/* nah fuck this
+		var neighbors = {
+			tl : false, // (( x > 0 && y > 0 ) ? getPixelState(x - 1 , y - 1) : false),
+			tm : false, // (( y > 0 ) ? getPixelState(x, y - 1) : false),
+			tr : false, // (( x < width - 1 && y > 0 ) ? getPixelState(x + 1, y - 1) : false),
+			ml : false, // (( x > 0 && y > 0 ) ? getPixelState(x - 1 , y - 1) : false),
+			mm : false,
+			mr : false,
+			bl : false, // (( x > 0 && y < height - 1 ) ? getPixelState(x - 1 , y - 1) : false)
+			bm : false, //
+			br : false
+		};
+		if (( x > 0 && y > 0 ))
+		*/
+
+	}
+
+	function handleCanvasClick(eve) {
+
+		eve.preventDefault();
+		// var x = (eve.clientX / eve.target.offsetWidth) * width;
+		// var y = (eve.clientY / eve.target.offsetHeight) * height;
+		// toggle( Math.floor(x), Math.floor(y) );
+
+	}
+
+	function handleCanvaseMousedown(eve) {
+		drawing = true;
+		var x = (eve.clientX / eve.target.offsetWidth) * width;
+		var y = (eve.clientY / eve.target.offsetHeight) * height;
+		toggle( Math.floor(x), Math.floor(y) );
+	}
+
+	function handleCanvaseMouseup(eve) {
+		drawing = false;
+		var x = (eve.clientX / eve.target.offsetWidth) * width;
+		var y = (eve.clientY / eve.target.offsetHeight) * height;
+		toggle( Math.floor(x), Math.floor(y) );
+	}
+
+	function handleCanvasMousemove(eve) {
+
+		var x = (eve.clientX / eve.target.offsetWidth) * width;
+		var y = (eve.clientY / eve.target.offsetHeight) * height;
+		toggle( Math.floor(x), Math.floor(y) );
+
+	}
+
+	// var x = (eve.clientX / eve.target.offsetWidth) * width;
+	// var y = (eve.clientY / eve.target.offsetHeight) * height;
+
+	function handleIntervalButtonClick(eve) {
+
+		eve.preventDefault();
+
+		interval();
+
+	}
+
+	canvas.addEventListener('click', handleCanvasClick)
+	button.addEventListener('click', handleIntervalButtonClick);
+	// setInterval(interval, 250);
+
+})(); // ('body', document, this);
+</script>
+</body>
+</html>
