@@ -12,6 +12,8 @@
 		|| window.mozCancelAnimationFrame
 		|| function(requestID){clearTimeout(requestID)} //fall back
 
+	var requestAnimationFrame = window.requestAnimationFrame;
+
 	// refresher on the rules, courtesy Wikipedia https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 	/*
 	Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
@@ -25,9 +27,9 @@
 		next : {}
 	}
 
-	var neighbormap = [
-		[-1,-1], [ 0,-1], [ 1,-1],
-		[-1, 0],          [ 1, 0],
+	var neighborMap = [
+		[-1,-1], [ 0,-1], [ 1,-1], // [ 2, -1], // can add / remove relationship rules to this to change how it behaves
+		[-1, 0],          [ 1, 0], // [ 2,  0],
 		[-1, 1], [ 0, 1], [ 1, 1],
 	];
 
@@ -37,7 +39,7 @@
 	var running = false;
 	var drawing = false;
 
-	var width = 300, height = 200;
+	var width = 100, height = 80;
 
 	// width = window.innerWidth;
 	// height = window.innerHeight;
@@ -121,10 +123,10 @@
 		var neighborCount = 0;
 		var neighborsChecked = 0;
 
-		for(var i = 0; i < neighbormap.length; i++) {
+		for(var i = 0; i < neighborMap.length; i++) {
 
-			var curX = x + neighbormap[i][0];
-			var curY = y + neighbormap[i][1];
+			var curX = x + neighborMap[i][0];
+			var curY = y + neighborMap[i][1];
 
 			if (loopXY) {
 				curX = (width + curX) % width;
@@ -175,8 +177,26 @@
 		var x = (eve.clientX / eve.target.offsetWidth) * width;
 		var y = (eve.clientY / eve.target.offsetHeight) * height;
 
-		if (drawing)
-			setPixelOn( Math.floor(x), Math.floor(y) );
+		if (drawing) {
+
+			var x = Math.floor(x);
+			var y = Math.floor(y);
+			setPixelOn(x, y);
+
+			for(var i = 0; i < neighborMap.length; i++) {
+
+				var curX = x + neighborMap[i][0];
+				var curY = y + neighborMap[i][1];
+
+				if (loopXY) {
+					curX = (width + curX) % width;
+					curY = (height + curY) % height;
+				}
+
+				setPixelOn( curX, curY );
+
+			}
+		}
 
 	}
 
@@ -302,8 +322,9 @@
 			// intervalWaiting = true; // could defend against doubles here
 			// not working for some reason, deal with this later:
 			setTimeout(interval, 1000 / 60); // optimistic
-			// // window.requestAnimationFrame(interval, 50);
-			// requestAnimationFrame(interval, 50);
+			// var res = window.requestAnimationFrame(interval);
+			// var res = requestAnimationFrame(interval);
+			// console.log( requestAnimationFrame, res );
 		}
 
 	}
