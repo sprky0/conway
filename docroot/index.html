@@ -57,6 +57,7 @@
 
 	var width = 300, height = 200;
 
+	var interfaceContainer = document.getElementsByClassName('interface')[0];
 	var button1 = document.getElementById('run');
 	var button2 = document.getElementById('next_frame');
 
@@ -195,9 +196,6 @@
 	function handleRunButtonClick(eve) {
 
 		eve.preventDefault();
-		// do no loop
-		// running = false;
-		// interval(false);
 		run();
 
 	}
@@ -215,6 +213,9 @@
 
 	function run() {
 
+		interfaceContainer.classList.add('hidden');
+
+		// no double trouble
 		if(running)
 			return;
 
@@ -224,6 +225,7 @@
 
 	function interval(noloop) {
 
+		// loop 1 - determine the next state based on our current state
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 
@@ -256,6 +258,9 @@
 			}
 		}
 
+		// loop 2 - draw the changes
+		// it might be more performant if we just determined the difference
+		// above and only looped through the known changed cells.  might do this later
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 
@@ -276,21 +281,21 @@
 		}
 
 		if (!noloop && running) {
-			setTimeout(interval, 50);
+			// intervalWaiting = true; // could defend against doubles here
+			window.requestAnimationFrame(interval);
 		}
 
 	}
 
+	// interface and interaction
 	// canvas.addEventListener('click', handleCanvasClick)
 	canvas.addEventListener('mousedown', handleCanvasMousedown)
 	canvas.addEventListener('mouseup', handleCanvasMouseup)
 	canvas.addEventListener('mousemove', handleCanvasMousemove)
-
 	button1.addEventListener('click', handleRunButtonClick);
 	button2.addEventListener('click', handleIntervalButtonClick);
 
 	init();
-	// run();
 
 })();
 
