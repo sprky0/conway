@@ -1,5 +1,18 @@
 (function(){
 
+	// requestAnimationFrame courtesy http://www.javascriptkit.com/javatutors/requestanimationframe.shtml
+	// thanks!
+	window.requestAnimationFrame = window.requestAnimationFrame
+		|| window.mozRequestAnimationFrame
+		|| window.webkitRequestAnimationFrame
+		|| window.msRequestAnimationFrame
+		|| function(f){return setTimeout(f, 1000/60)} // simulate calling code 60
+
+	window.cancelAnimationFrame = window.cancelAnimationFrame
+		|| window.mozCancelAnimationFrame
+		|| function(requestID){clearTimeout(requestID)} //fall back
+
+	// refresher on the rules, courtesy Wikipedia https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 	/*
 	Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
 	Any live cell with two or three live neighbours lives on to the next generation.
@@ -12,6 +25,15 @@
 		next : {}
 	}
 
+	var neighbormap = [
+		[-1,-1], [ 0,-1], [ 1,-1],
+		[-1, 0],          [ 1, 0],
+		[-1, 1], [ 0, 1], [ 1, 1],
+	];
+
+	// loop edges
+	var loopXY = true;
+
 	var running = false;
 	var drawing = false;
 
@@ -20,7 +42,7 @@
 	// width = window.innerWidth;
 	// height = window.innerHeight;
 
-	console.log(width, height);
+	// console.log(width, height);
 
 	var interfaceContainer = document.getElementsByClassName('interface')[0];
 	var button1 = document.getElementById('run');
@@ -93,27 +115,35 @@
 
 	function getPixelNeighborCount(x, y) {
 
-		var startX = x > 0 ? x - 1 : 0;
-		var startY = y > 0 ? y - 1 : 0;
-		var endX = x + 1 < width - 1 ? x + 1 : width - 1;
-		var endY = y + 1 < height - 1 ? y + 1 : height - 1;
+		// nighbormap is now global
 
+		// var neighborTests = [];
 		var neighborCount = 0;
 		var neighborsChecked = 0;
 
-		for(var curX = startX; curX <= endX; curX++) {
-			for(var curY = startY; curY <= endY; curY++) {
+		for(var i = 0; i < neighbormap.length; i++) {
+
+			var curX = x + neighbormap[i][0];
+			var curY = y + neighbormap[i][1];
+
+			if (loopXY) {
+				curX = (width + curX) % width;
+				curY = (height + curY) % height;
+			}
+
+			if (!(curX < 0 || curX >= width || curY < 0 || curY >= height)) {
 
 				neighborsChecked++;
 
-				if (!(curX === x && curY === y) && getPixel(curX, curY).state == true) {
+				if (getPixel(curX, curY).state == true) {
 					neighborCount++;
 				}
+
 			}
+
 		}
-		//
-		// if (neighborCount > 0)
-		// 	console.log("I FOUND SOMEONE!" + neighborCount + " from " + neighborsChecked);
+
+		// console.log(x ,y, neighborsChecked, neighborCount);
 
 		return neighborCount;
 
@@ -170,9 +200,11 @@
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 				state.current[x+"_"+y] = {state:false};
-				state.next[x+"_"+y] = {state:false};
+				state.next[x+"_"+y] = {state: Math.random() > .5 ? true : false};
 			}
 		}
+
+		forceDraw();
 
 	}
 
@@ -190,6 +222,8 @@
 
 	function interval(noloop) {
 
+		var todo = [];
+
 		var loopCount = 0;
 		var startLoopMS = new Date().getTime();
 
@@ -203,24 +237,28 @@
 				if (getPixel(x,y).state == true && neighborCount < 2) {
 					// console.log(x + "," + y + ": fewer than two -- underpopulation die")
 					setPixelNext(x, y, false);
+					todo.push([x,y]);
 				}
 
 				// Any live cell with two or three live neighbours lives on to the next generation.
 				else if (getPixel(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
 					// console.log(x + "," + y + ": two or three -- live ok")
 					setPixelNext(x, y, true);
+					todo.push([x,y]);
 				}
 
 				// Any live cell with more than three live neighbours dies, as if by overpopulation.
 				else if (getPixel(x,y).state == true && neighborCount > 3) {
 					// console.log(x + "," + y + ": live and three -- overpopulation die")
 					setPixelNext(x, y, false);
+					todo.push([x,y]);
 				}
 
 				//Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 				else if (getPixel(x,y).state == false && neighborCount === 3) {
 					// console.log(x + "," + y + ": dead and three -- reproduction add")
 					setPixelNext(x, y, true);
+					todo.push([x,y]);
 				}
 
 				loopCount++;
@@ -228,7 +266,7 @@
 			}
 		}
 
-		console.log("LOOP1 (test) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
+		// console.log("LOOP1 (test) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
 
 		var loopCount = 0;
 		var startLoopsMS = new Date().getTime();
@@ -236,6 +274,42 @@
 		// loop 2 - draw the changes
 		// it might be more performant if we just determined the difference
 		// above and only looped through the known changed cells.  might do this later
+		for(var i = 0; i < todo.length; i++) {
+
+			var x = todo[i][0];
+			var y = todo[i][1];
+
+			var curState = getPixel(x, y).state;
+			var nextState = getPixelNext(x, y).state;
+
+			// migrate next state to current state + draw
+
+			if (curState != nextState && nextState == true) {
+				setPixelOn(x, y);
+			}
+
+			else if (curState != nextState && nextState == false) {
+				setPixelOff(x, y);
+			}
+
+			loopCount++;
+
+		}
+
+		// console.log("LOOP2 (draw) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
+
+		if (!noloop && running) {
+			// intervalWaiting = true; // could defend against doubles here
+			// not working for some reason, deal with this later:
+			setTimeout(interval, 1000 / 60); // optimistic
+			// // window.requestAnimationFrame(interval, 50);
+			// requestAnimationFrame(interval, 50);
+		}
+
+	}
+
+	function forceDraw() {
+
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 
@@ -252,16 +326,7 @@
 					setPixelOff(x, y);
 				}
 
-				loopCount++;
-
 			}
-		}
-
-		console.log("LOOP2 (draw) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
-
-		if (!noloop && running) {
-			// intervalWaiting = true; // could defend against doubles here
-			window.requestAnimationFrame(interval);
 		}
 
 	}
