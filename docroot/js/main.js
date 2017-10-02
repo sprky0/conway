@@ -28,9 +28,10 @@
 	}
 
 	var neighborMap = [
-		[-1,-1], [ 0,-1], [ 1,-1], // [ 2, -1], // can add / remove relationship rules to this to change how it behaves
-		[-1, 0],          [ 1, 0], // [ 2,  0],
-		[-1, 1], [ 0, 1], [ 1, 1],
+		// can add / remove relationship rules to this to change how it behaves
+		[-1,-1], [ 0,-1], [ 1,-1],
+		[-1, 0],          [ 1, 0],
+		[-1, 1], [ 0, 1], [ 1, 1]
 	];
 
 	// loop edges
@@ -41,8 +42,8 @@
 
 	var width = 100, height = 80;
 
-	// width = window.innerWidth;
-	// height = window.innerHeight;
+	width = parseInt( window.innerWidth / 8 );
+	height = parseInt( window.innerHeight / 8 );
 
 	// console.log(width, height);
 
@@ -58,12 +59,6 @@
 	parent.appendChild(canvas);
 
 	var context = canvas.getContext('2d');
-
-	// context['imageSmoothingEnabled'] = false;       /* standard */
-	// context['mozImageSmoothingEnabled'] = false;    /* Firefox */
-	// context['oImageSmoothingEnabled'] = false;      /* Opera */
-	// context['webkitImageSmoothingEnabled'] = false; /* Safari */
-	// context['msImageSmoothingEnabled'] = false;     /* IE */
 
 	// temporary pixel for drawing
 	var singlePixel = context.createImageData(1,1);
@@ -98,7 +93,8 @@
 
 	function setPixelOn(x, y) {
 		state.current[x + "_" + y].state = true;
-		drawPixel(x, y, 0, 0, 0);
+		var r = 0, g = 0, b = 0;
+		drawPixel(x, y, r, g, b);
 	}
 
 	function drawPixel(x,y,r,g,b) {
@@ -113,6 +109,10 @@
 
 	function random(low, high) {
 		return Math.random() * high + low;
+	}
+
+	function randomInt(low, high) {
+		return Math.floor(random(low, high));
 	}
 
 	function getPixelNeighborCount(x, y) {
@@ -217,11 +217,54 @@
 
 	function init() {
 
+		var gliders = [
+
+			// don't forget 0,0 is top left corner of grid oops i forget always
+
+			[[ 0, 0],[ 1, 0],[ 2, 0],[ 2, 1],[ 1, 2]], // right down
+			[[ 0, 0],[ 1, 0],[ 2, 0],[ 2,-1],[ 1,-2]], // right up
+
+			[[ 0, 0],[-1, 0],[-2, 0],[-2, 1],[-1, 2]], // left down
+			[[ 0, 0],[-1, 0],[-2, 0],[-2,-1],[-1,-2]], // left up
+
+			[[ 0, 0],[ 0,-1],[ 0,-2],[-1,-2],[-2,-1]], // top left
+			[[ 0, 0],[ 0,-1],[ 0,-2],[ 1,-2],[ 2,-1]], // top right
+
+			[[ 0, 0],[ 0, 1],[ 0, 2],[-1, 2],[-2, 1]], // bottom left
+			[[ 0, 0],[ 0, 1],[ 0, 2],[ 1, 2],[ 2, 1]], // bottom right
+
+		];
+
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 				state.current[x+"_"+y] = {state:false};
-				state.next[x+"_"+y] = {state: Math.random() > .5 ? true : false};
+				// state.next[x+"_"+y] = {state: Math.random() > .5 ? true : false};
+				state.next[x+"_"+y] = {state: false};
 			}
+		}
+
+
+		// gliderland
+		for(var i = 0; i < 200; i++) {
+
+
+
+			var curGlider = gliders[randomInt(0, gliders.length)];
+
+			console.log(curGlider);
+
+			var x = randomInt(0, width);
+			var y = randomInt(0, height);
+
+			for (var g = 0; g < curGlider.length; g++) {
+
+				var curX = (width + (x + curGlider[g][0])) % width;
+				var curY = (height + (y + curGlider[g][1])) % height;
+
+				state.next[curX +"_"+ curY] = {state: true};
+
+			}
+
 		}
 
 		forceDraw();
