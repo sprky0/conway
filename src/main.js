@@ -1,4 +1,79 @@
-(function(){
+function getCanvasRenderer(width, height, selector) {
+
+	// create canvas
+	var parent = document.getElementsByTagName('body')[0];
+	var canvas = document.createElement('canvas');
+	canvas.classList.add('old-canvas');
+	canvas.width = width;
+	canvas.height = height;
+	parent.appendChild(canvas);
+
+	var context = canvas.getContext('2d');
+
+	// temporary pixel for drawing
+	var singlePixel = context.createImageData(1,1);
+	var singlePixelData = singlePixel.data;
+
+	// old-canvas
+	function drawPixel(x,y,r,g,b) {
+
+		singlePixelData[0] = r;
+		singlePixelData[1] = g;
+		singlePixelData[2] = b;
+		singlePixelData[3] = 255;
+		context.putImageData( singlePixel, x, y );
+
+	}
+
+	return {
+
+		// setPixel
+		drawCell : drawPixel
+
+	};
+
+}
+
+// Set the scene size.
+function getThreeRenderer(width, height, selector) {
+
+	var WIDTH = width;
+	var HEIGHT = height;
+
+	// Set some camera attributes.
+	var VIEW_ANGLE = 45;
+	var ASPECT = WIDTH / HEIGHT;
+	var NEAR = 0.1;
+	var FAR = 10000;
+
+	// Get the DOM element to attach to
+	var container = document.querySelector(selector);
+
+	// Create a WebGL renderer, camera
+	// and a scene
+	var renderer = new THREE.WebGLRenderer();
+	var camera = new THREE.PerspectiveCamera(
+		VIEW_ANGLE,
+		ASPECT,
+		NEAR,
+		FAR
+	);
+
+	var scene = new THREE.Scene();
+
+	// Add the camera to the scene.
+	scene.add(camera);
+
+	// Start the renderer.
+	renderer.setSize(WIDTH, HEIGHT);
+
+	// Attach the renderer-supplied
+	// DOM element.
+	container.appendChild(renderer.domElement);
+
+}
+
+function runConway() {
 
 	// requestAnimationFrame courtesy http://www.javascriptkit.com/javatutors/requestanimationframe.shtml
 	// thanks!
@@ -54,60 +129,39 @@
 	var button1 = document.getElementById('run');
 	var button2 = document.getElementById('next_frame');
 
-	// create canvas
-	var parent = document.getElementsByTagName('body')[0];
-	var canvas = document.createElement('canvas');
-	canvas.width = width;
-	canvas.height = height;
-	parent.appendChild(canvas);
-
-	var context = canvas.getContext('2d');
-
-	// temporary pixel for drawing
-	var singlePixel = context.createImageData(1,1);
-	var singlePixelData = singlePixel.data;
+	var render = getCanvasRenderer(width, height, '.display');
 
 	function toggle(x,y) {
 
-		if (getPixel(x, y).state) {
-			setPixelOff(x, y);
+		if (getCell(x, y).state) {
+			setCellOff(x, y);
 		} else {
-			setPixelOn(x, y);
+			setCellOn(x, y);
 		}
 
 	}
 
-	function getPixel(x,y) {
+	function getCell(x,y) {
 		return state.current[x + "_" + y];
 	}
 
-	function getPixelNext(x, y) {
+	function getCellNext(x, y) {
 		return state.next[x + "_" + y];
 	}
 
-	function setPixelNext(x, y, newState) {
+	function setCellNext(x, y, newState) {
 		state.next[x+"_"+y].state = newState;
 	}
 
-	function setPixelOff(x, y) {
+	function setCellOff(x, y) {
 		state.current[x + "_" + y].state = false;
-		drawPixel(x, y, 255, 255, 255);
+		render.drawCell(x, y, 255, 255, 255);
 	}
 
-	function setPixelOn(x, y) {
+	function setCellOn(x, y) {
 		state.current[x + "_" + y].state = true;
 		var r = 0, g = 0, b = 0;
-		drawPixel(x, y, r, g, b);
-	}
-
-	function drawPixel(x,y,r,g,b) {
-
-		singlePixelData[0] = r;
-		singlePixelData[1] = g;
-		singlePixelData[2] = b;
-		singlePixelData[3] = 255;
-		context.putImageData( singlePixel, x, y );
-
+		render.drawCell(x, y, r, g, b);
 	}
 
 	function random(low, high) {
@@ -118,7 +172,7 @@
 		return Math.floor(random(low, high));
 	}
 
-	function getPixelNeighborCount(x, y) {
+	function getCellNeighborCount(x, y) {
 
 		// nighbormap is now global
 
@@ -140,7 +194,7 @@
 
 				neighborsChecked++;
 
-				if (getPixel(curX, curY).state == true) {
+				if (getCell(curX, curY).state == true) {
 					neighborCount++;
 				}
 
@@ -154,55 +208,55 @@
 
 	}
 
-	function handleCanvasClick(eve) {
-		eve.preventDefault();
-		var x = (eve.clientX / eve.target.offsetWidth) * width;
-		var y = (eve.clientY / eve.target.offsetHeight) * height;
-		toggle( Math.floor(x), Math.floor(y) );
-	}
-
-	function handleCanvasMousedown(eve) {
-		drawing = true;
-		var x = (eve.clientX / eve.target.offsetWidth) * width;
-		var y = (eve.clientY / eve.target.offsetHeight) * height;
-		toggle( Math.floor(x), Math.floor(y) );
-	}
-
-	function handleCanvasMouseup(eve) {
-		drawing = false;
-		var x = (eve.clientX / eve.target.offsetWidth) * width;
-		var y = (eve.clientY / eve.target.offsetHeight) * height;
-		toggle( Math.floor(x), Math.floor(y) );
-	}
-
-	function handleCanvasMousemove(eve) {
-
-		var x = (eve.clientX / eve.target.offsetWidth) * width;
-		var y = (eve.clientY / eve.target.offsetHeight) * height;
-
-		if (drawing) {
-
-			x = Math.floor(x);
-			y = Math.floor(y);
-			setPixelOn(x, y);
-
-			for(var i = 0; i < neighborMap.length; i++) {
-
-				var curX = x + neighborMap[i][0];
-				var curY = y + neighborMap[i][1];
-
-				if (loopXY) {
-					curX = (width + curX) % width;
-					curY = (height + curY) % height;
-				}
-
-				setPixelOn( curX, curY );
-
-			}
-		}
-
-	}
-
+	// function handleCanvasClick(eve) {
+	// 	eve.preventDefault();
+	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
+	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
+	// 	toggle( Math.floor(x), Math.floor(y) );
+	// }
+	//
+	// function handleCanvasMousedown(eve) {
+	// 	drawing = true;
+	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
+	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
+	// 	toggle( Math.floor(x), Math.floor(y) );
+	// }
+	//
+	// function handleCanvasMouseup(eve) {
+	// 	drawing = false;
+	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
+	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
+	// 	toggle( Math.floor(x), Math.floor(y) );
+	// }
+	//
+	// function handleCanvasMousemove(eve) {
+	//
+	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
+	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
+	//
+	// 	if (drawing) {
+	//
+	// 		x = Math.floor(x);
+	// 		y = Math.floor(y);
+	// 		setCellOn(x, y);
+	//
+	// 		for(var i = 0; i < neighborMap.length; i++) {
+	//
+	// 			var curX = x + neighborMap[i][0];
+	// 			var curY = y + neighborMap[i][1];
+	//
+	// 			if (loopXY) {
+	// 				curX = (width + curX) % width;
+	// 				curY = (height + curY) % height;
+	// 			}
+	//
+	// 			setCellOn( curX, curY );
+	//
+	// 		}
+	// 	}
+	//
+	// }
+	
 	function handleIntervalButtonClick(eve) {
 
 		eve.preventDefault();
@@ -297,33 +351,33 @@
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 
-				var neighborCount = getPixelNeighborCount(x, y);
+				var neighborCount = getCellNeighborCount(x, y);
 
 				// Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
-				if (getPixel(x,y).state == true && neighborCount < 2) {
+				if (getCell(x,y).state == true && neighborCount < 2) {
 					// console.log(x + "," + y + ": fewer than two -- underpopulation die")
-					setPixelNext(x, y, false);
+					setCellNext(x, y, false);
 					todo.push([x,y]);
 				}
 
 				// Any live cell with two or three live neighbours lives on to the next generation.
-				else if (getPixel(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
+				else if (getCell(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
 					// console.log(x + "," + y + ": two or three -- live ok")
-					setPixelNext(x, y, true);
+					setCellNext(x, y, true);
 					todo.push([x,y]);
 				}
 
 				// Any live cell with more than three live neighbours dies, as if by overpopulation.
-				else if (getPixel(x,y).state == true && neighborCount > 3) {
+				else if (getCell(x,y).state == true && neighborCount > 3) {
 					// console.log(x + "," + y + ": live and three -- overpopulation die")
-					setPixelNext(x, y, false);
+					setCellNext(x, y, false);
 					todo.push([x,y]);
 				}
 
 				//Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-				else if (getPixel(x,y).state == false && neighborCount === 3) {
+				else if (getCell(x,y).state == false && neighborCount === 3) {
 					// console.log(x + "," + y + ": dead and three -- reproduction add")
-					setPixelNext(x, y, true);
+					setCellNext(x, y, true);
 					todo.push([x,y]);
 				}
 
@@ -345,17 +399,17 @@
 			var changeX = todo[i][0];
 			var changeY = todo[i][1];
 
-			var curState = getPixel(changeX, changeY).state;
-			var nextState = getPixelNext(changeX, changeY).state;
+			var curState = getCell(changeX, changeY).state;
+			var nextState = getCellNext(changeX, changeY).state;
 
 			// migrate next state to current state + draw
 
 			if (curState != nextState && nextState == true) {
-				setPixelOn(changeX, changeY);
+				setCellOn(changeX, changeY);
 			}
 
 			else if (curState != nextState && nextState == false) {
-				setPixelOff(changeX, changeY);
+				setCellOff(changeX, changeY);
 			}
 
 			loopCount++;
@@ -380,17 +434,17 @@
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 
-				var curState = getPixel(x, y).state;
-				var nextState = getPixelNext(x, y).state;
+				var curState = getCell(x, y).state;
+				var nextState = getCellNext(x, y).state;
 
 				// migrate next state to current state + draw
 
 				if (curState != nextState && nextState == true) {
-					setPixelOn(x, y);
+					setCellOn(x, y);
 				}
 
 				else if (curState != nextState && nextState == false) {
-					setPixelOff(x, y);
+					setCellOff(x, y);
 				}
 
 			}
@@ -400,12 +454,21 @@
 
 	// interface and interaction
 	// canvas.addEventListener('click', handleCanvasClick)
+	/*
 	canvas.addEventListener('mousedown', handleCanvasMousedown);
 	canvas.addEventListener('mouseup', handleCanvasMouseup);
 	canvas.addEventListener('mousemove', handleCanvasMousemove);
+	*/
 	button1.addEventListener('click', handleRunButtonClick);
 	button2.addEventListener('click', handleIntervalButtonClick);
 
 	init();
 
-})();
+}
+
+runConway();
+
+
+
+
+// var renderer = getRenderer(window.innerWidth, window.innerHeight, '.display');

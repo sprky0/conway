@@ -19,7 +19,10 @@ module.exports = function(grunt) {
 				separator: ';'
 			},
 			dist: {
-				src: ['src/**/*.js'],
+				src: [
+					'node_modules/three/build/three.js',
+					'src/**/*.js'
+				],
 				dest: 'docroot/js/main.js'
 			}
 		}
