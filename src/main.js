@@ -1,7 +1,10 @@
+var SCALE = 16; // cubes are ~1/16 scale of vertical and horizontal space in pixels
+
 function getCanvasRenderer(width, height, selector) {
 
 	// create canvas
-	var parent = document.getElementsByTagName('body')[0];
+	// var parent = document.getElementsByTagName('body')[0];
+	var parent = document.querySelector(selector);
 	var canvas = document.createElement('canvas');
 	canvas.classList.add('old-canvas');
 	canvas.width = width;
@@ -25,11 +28,22 @@ function getCanvasRenderer(width, height, selector) {
 
 	}
 
+	/**
+	 * Nothing to do here
+	 */
+	function interval() {
+		return;
+	}
+
 	return {
-
+		interval : interval,
 		// setPixel
-		drawCell : drawPixel
-
+		setCellOn : function(x,y) {
+			drawPixel(x,y,0,0,0);
+		},
+		setCellOff : function(x,y) {
+			drawPixel(x,y,255,255,255);
+		}
 	};
 
 }
@@ -37,8 +51,14 @@ function getCanvasRenderer(width, height, selector) {
 // Set the scene size.
 function getThreeRenderer(width, height, selector) {
 
-	var WIDTH = width;
-	var HEIGHT = height;
+	// starts empty, fills as it is interacted with
+	var cubes = {};
+
+	var WIDTH = window.innerWidth; // width;
+	var HEIGHT = window.innerHeight; // height;
+
+	var CUBESIDE = WIDTH / SCALE;
+	// height .. eh
 
 	// Set some camera attributes.
 	var VIEW_ANGLE = 45;
@@ -67,9 +87,83 @@ function getThreeRenderer(width, height, selector) {
 	// Start the renderer.
 	renderer.setSize(WIDTH, HEIGHT);
 
+	renderer.setClearColor (0xff0000, 1);
+
 	// Attach the renderer-supplied
 	// DOM element.
 	container.appendChild(renderer.domElement);
+
+	// var geometry = new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE );
+	// var material = new THREE.MeshNormalMaterial(); // THREE.MeshBasicMaterial( { map: texture } );
+
+	function getCubeKey(x,y) {
+		return "x"+"y";
+	}
+
+	function cubeAt(x,y) {
+		var key = getCubeKey(x,y);
+		return !!cubes[key];
+	}
+
+	function spawnCube(x,y) {
+		if (cubeAt(x,y))
+			return false;
+
+		var key = getCubeKey(x,y);
+
+		var mesh = new THREE.Mesh(
+			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
+			new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true } )
+		);
+		cubes[key] = mesh;
+
+		mesh.position.x = x * CUBESIDE;
+		mesh.position.y = y * CUBESIDE;
+		mesh.position.z = 0;
+
+		scene.add( mesh );
+
+	}
+
+	function removeCube(x,y) {
+		if (!cubeAt(x,y))
+			return false;
+
+		var key = getCubeKey(x,y);
+		// cubes[key]. etc
+		scene.remove( cubes[key] );
+
+		cubes[key] = null;
+
+	}
+
+	function interval() {
+		// camera.rotation.x += 0.01;
+		// camera.rotation.y += 0.02;
+		// camera.rotation.z += 0.03;
+		// console.log("THREE interval", camera.rotation);
+		// console.log( cubes );
+	}
+
+	function onWindowResize() {
+		console.log('resize!');
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+	}
+
+	window.addEventListener( 'resize', onWindowResize, false );
+
+	return {
+		interval : interval,
+		// setPixel
+		setCellOn : function(x,y) {
+			spawnCube(x,y);
+		},
+		setCellOff : function(x,y) {
+			removeCube(x,y);
+		}
+	};
 
 }
 
@@ -123,13 +217,12 @@ function runConway() {
 	width = parseInt( window.innerWidth / 32 );
 	height = parseInt( window.innerHeight / 32 );
 
-	// console.log(width, height);
-
 	var interfaceContainer = document.getElementsByClassName('interface')[0];
 	var button1 = document.getElementById('run');
 	var button2 = document.getElementById('next_frame');
 
-	var render = getCanvasRenderer(width, height, '.display');
+	// var renderer = getCanvasRenderer(width, height, '.display');
+	var renderer = getThreeRenderer(width, height, '.display');
 
 	function toggle(x,y) {
 
@@ -155,13 +248,14 @@ function runConway() {
 
 	function setCellOff(x, y) {
 		state.current[x + "_" + y].state = false;
-		render.drawCell(x, y, 255, 255, 255);
+		renderer.setCellOff(x, y);
+		// console.log("OFF",x,y);
 	}
 
 	function setCellOn(x, y) {
 		state.current[x + "_" + y].state = true;
-		var r = 0, g = 0, b = 0;
-		render.drawCell(x, y, r, g, b);
+		renderer.setCellOn(x, y);
+		// console.log("ON ",x,y);
 	}
 
 	function random(low, high) {
@@ -208,6 +302,7 @@ function runConway() {
 
 	}
 
+	// canvas specific interaction:
 	// function handleCanvasClick(eve) {
 	// 	eve.preventDefault();
 	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
@@ -256,11 +351,11 @@ function runConway() {
 	// 	}
 	//
 	// }
-	
+
 	function handleIntervalButtonClick(eve) {
 
 		eve.preventDefault();
-		// do no loop
+		// do no loop -- one step
 		interval(true);
 
 	}
@@ -268,12 +363,16 @@ function runConway() {
 	function handleRunButtonClick(eve) {
 
 		eve.preventDefault();
+		// run continuously
 		run();
+
+		// swap "stop" button here
 
 	}
 
 	function init() {
 
+		// preset shapes
 		var gliders = [
 
 			// don't forget 0,0 is top left corner of grid oops i forget always
@@ -300,15 +399,10 @@ function runConway() {
 			}
 		}
 
-
 		// gliderland
 		for(var i = 0; i < 4; i++) {
 
-
-
 			var curGlider = gliders[randomInt(0, gliders.length)];
-
-			console.log(curGlider);
 
 			var glideX = randomInt(0, width);
 			var glideY = randomInt(0, height);
@@ -416,12 +510,13 @@ function runConway() {
 
 		}
 
-		// console.log("LOOP2 (draw) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
+		renderer.interval();
 
+		// console.log("LOOP2 (draw) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
 		if (!noloop && running) {
 			// intervalWaiting = true; // could defend against doubles here
 			// not working for some reason, deal with this later:
-			setTimeout(interval, 1000 / 60); // optimistic
+			setTimeout(interval, 1000 / 60); // optimistic framerate - will not happen
 			// var res = window.requestAnimationFrame(interval);
 			// var res = requestAnimationFrame(interval);
 			// console.log( requestAnimationFrame, res );
