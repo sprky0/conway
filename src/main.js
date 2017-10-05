@@ -1,6 +1,46 @@
-var SCALE = 16; // cubes are ~1/16 scale of vertical and horizontal space in pixels
+
+var CUBEWIDTH = 16;
+var CUBEHEIGHT = 16;
+
+// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+// requestAnimationFrame polyfill by Erik Möller
+// fixes from Paul Irish and Tino Zijdel
+
+function ensureAnimationFrame() {
+	var lastTime = 0;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+		window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+	}
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+			var id = window.setTimeout(function() { callback(currTime + timeToCall); },timeToCall);
+			lastTime = currTime + timeToCall;
+			return id;
+		};
+	}
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		};
+	}
+}
+
+function hasWebGL() {
+	return !!window.WebGLRenderingContext &&
+		!!document.createElement('canvas').getContext(
+			'experimental-webgl',
+			{antialias: false}
+		);
+}
 
 function getCanvasRenderer(width, height, selector) {
+
+	console.log("Setting up a basic CANVAS renderer", width, height, selector);
 
 	// create canvas
 	// var parent = document.getElementsByTagName('body')[0];
@@ -51,47 +91,69 @@ function getCanvasRenderer(width, height, selector) {
 // Set the scene size.
 function getThreeRenderer(width, height, selector) {
 
+	console.log("Setting up a THREE.js renderer", width, height, selector);
+
 	// starts empty, fills as it is interacted with
 	var cubes = {};
 
+	// we always fill the whole available space regardless of grid scale
 	var WIDTH = window.innerWidth; // width;
 	var HEIGHT = window.innerHeight; // height;
 
-	var CUBESIDE = WIDTH / SCALE;
+	// our cubes should be somewhat relative to available space
+	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
 	// height .. eh
 
 	// Set some camera attributes.
-	var VIEW_ANGLE = 45;
-	var ASPECT = WIDTH / HEIGHT;
-	var NEAR = 0.1;
-	var FAR = 10000;
 
 	// Get the DOM element to attach to
-	var container = document.querySelector(selector);
+	// var container = document.querySelector(selector);
 
-	// Create a WebGL renderer, camera
-	// and a scene
-	var renderer = new THREE.WebGLRenderer();
-	var camera = new THREE.PerspectiveCamera(
-		VIEW_ANGLE,
-		ASPECT,
-		NEAR,
-		FAR
-	);
+	var container = document.createElement( 'div' );
+	document.body.appendChild( container );
 
+	var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
+
+	camera.position.x = WIDTH / 2;
+	camera.position.y = HEIGHT / 2;
+	camera.position.z = 2600;
+
+	// camera.lookAt( new THREE.Vector3( WIDTH / 2, HEIGHT / 2, 0 ) );
 	var scene = new THREE.Scene();
 
 	// Add the camera to the scene.
-	scene.add(camera);
+	// scene.add(camera); // do we do this ?
 
-	// Start the renderer.
-	renderer.setSize(WIDTH, HEIGHT);
+	scene.background = new THREE.Color( 0xffff00 );
 
-	renderer.setClearColor (0xff0000, 1);
+	// add some crap / geometry
+
+	scene.matrixAutoUpdate = false;
+	var renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	container.appendChild( renderer.domElement );
+
+	for (var x = 0; x < CUBEWIDTH; x++) {
+		for (var y = 0; y< CUBEHEIGHT; y++) {
+
+			var firstObject = new THREE.Mesh(
+				new THREE.BoxBufferGeometry( CUBESIDE / 2, CUBESIDE / 2, CUBESIDE / 2 ),
+				new THREE.MeshBasicMaterial({ color: 0xffff00 })
+			);
+
+			firstObject.position.x = CUBESIDE * x; //  / 2;
+			firstObject.position.y = CUBESIDE * y; // CUBESIDE / 2;
+			firstObject.position.z = 0;
+
+			scene.add( firstObject );
+
+		}
+	}
 
 	// Attach the renderer-supplied
 	// DOM element.
-	container.appendChild(renderer.domElement);
+	// container.appendChild(renderer.domElement);
 
 	// var geometry = new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE );
 	// var material = new THREE.MeshNormalMaterial(); // THREE.MeshBasicMaterial( { map: texture } );
@@ -113,7 +175,7 @@ function getThreeRenderer(width, height, selector) {
 
 		var mesh = new THREE.Mesh(
 			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
-			new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true } )
+			new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true })
 		);
 		cubes[key] = mesh;
 
@@ -122,6 +184,8 @@ function getThreeRenderer(width, height, selector) {
 		mesh.position.z = 0;
 
 		scene.add( mesh );
+		// camera.lookAt( mesh.position );
+		// console.log( mesh );
 
 	}
 
@@ -130,7 +194,7 @@ function getThreeRenderer(width, height, selector) {
 			return false;
 
 		var key = getCubeKey(x,y);
-		// cubes[key]. etc
+
 		scene.remove( cubes[key] );
 
 		cubes[key] = null;
@@ -138,21 +202,30 @@ function getThreeRenderer(width, height, selector) {
 	}
 
 	function interval() {
-		// camera.rotation.x += 0.01;
-		// camera.rotation.y += 0.02;
-		// camera.rotation.z += 0.03;
-		// console.log("THREE interval", camera.rotation);
-		// console.log( cubes );
+		renderer.render( scene, camera );
 	}
 
 	function onWindowResize() {
-		console.log('resize!');
+		console.log('resizing the THREE.js view');
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
 		renderer.setSize( window.innerWidth, window.innerHeight );
 	}
 
+
+	//
+	// var mesh = new THREE.Mesh(
+	// 	new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
+	// 	new THREE.MeshBasicMaterial( { color: 0x00ff00, wireframe: true } )
+	// );
+	// scene.add( mesh );
+
+
 	window.addEventListener( 'resize', onWindowResize, false );
+
+
+	// draw the initial frame before we start running the animation
+	renderer.render( scene, camera );
 
 	return {
 		interval : interval,
@@ -400,7 +473,7 @@ function runConway() {
 		}
 
 		// gliderland
-		for(var i = 0; i < 4; i++) {
+		for(var i = 0; i < 400; i++) {
 
 			var curGlider = gliders[randomInt(0, gliders.length)];
 
@@ -516,7 +589,7 @@ function runConway() {
 		if (!noloop && running) {
 			// intervalWaiting = true; // could defend against doubles here
 			// not working for some reason, deal with this later:
-			setTimeout(interval, 1000 / 60); // optimistic framerate - will not happen
+			setTimeout(interval, 400 ); // 1000 / 60); // optimistic framerate - will not happen
 			// var res = window.requestAnimationFrame(interval);
 			// var res = requestAnimationFrame(interval);
 			// console.log( requestAnimationFrame, res );
@@ -557,13 +630,25 @@ function runConway() {
 	button1.addEventListener('click', handleRunButtonClick);
 	button2.addEventListener('click', handleIntervalButtonClick);
 
+	// camera look for 3d version
+	// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+
 	init();
 
 }
 
-runConway();
+function main() {
 
+	//
+	runConway();
 
+	// console.log("LEZ GO");
+	// alert( hasWebGL() );
 
+	// test scenbe setou anrd crap:
+	// var renderer = getThreeRenderer(window.innerWidth, window.innerHeight, '.display');
+	// renderer.interval();
 
-// var renderer = getRenderer(window.innerWidth, window.innerHeight, '.display');
+}
+
+setTimeout(main, 100);

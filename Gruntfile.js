@@ -18,10 +18,18 @@ module.exports = function(grunt) {
 				// define a string to put between each file in the concatenated output
 				separator: ';'
 			},
-			dist: {
+			core: {
 				src: [
-					'node_modules/three/build/three.js',
-					'src/**/*.js'
+					'node_modules/three/build/three.min.js'
+					// , 'src/**/*.js'
+				],
+				dest: 'docroot/js/core.js'
+			},
+			app: {
+				src: [
+					// 'node_modules/three/build/three.js',
+					// 'src/demo.js'
+					'src/main.js'
 				],
 				dest: 'docroot/js/main.js'
 			}
