@@ -1,6 +1,5 @@
-
-var CUBEWIDTH = 16;
-var CUBEHEIGHT = 16;
+var CUBEWIDTH = 10;
+var CUBEHEIGHT = 10;
 
 // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
 // http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
@@ -114,9 +113,9 @@ function getThreeRenderer(width, height, selector) {
 
 	var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
 
-	camera.position.x = WIDTH / 2;
-	camera.position.y = HEIGHT / 2;
-	camera.position.z = 2600;
+	camera.position.x = CUBESIDE * (CUBEWIDTH / 2);
+	camera.position.y = CUBESIDE * (CUBEHEIGHT / 2);
+	camera.position.z = 3000;
 
 	// camera.lookAt( new THREE.Vector3( WIDTH / 2, HEIGHT / 2, 0 ) );
 	var scene = new THREE.Scene();
@@ -128,38 +127,17 @@ function getThreeRenderer(width, height, selector) {
 
 	// add some crap / geometry
 
-	scene.matrixAutoUpdate = false;
+	scene.matrixAutoUpdate = true;
 	var renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	container.appendChild( renderer.domElement );
 
-	for (var x = 0; x < CUBEWIDTH; x++) {
-		for (var y = 0; y< CUBEHEIGHT; y++) {
-
-			var firstObject = new THREE.Mesh(
-				new THREE.BoxBufferGeometry( CUBESIDE / 2, CUBESIDE / 2, CUBESIDE / 2 ),
-				new THREE.MeshBasicMaterial({ color: 0xffff00 })
-			);
-
-			firstObject.position.x = CUBESIDE * x; //  / 2;
-			firstObject.position.y = CUBESIDE * y; // CUBESIDE / 2;
-			firstObject.position.z = 0;
-
-			scene.add( firstObject );
-
-		}
-	}
-
-	// Attach the renderer-supplied
-	// DOM element.
-	// container.appendChild(renderer.domElement);
-
-	// var geometry = new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE );
-	// var material = new THREE.MeshNormalMaterial(); // THREE.MeshBasicMaterial( { map: texture } );
+	// var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+	// scene.add( light );
 
 	function getCubeKey(x,y) {
-		return "x"+"y";
+		return x+"_"+y;
 	}
 
 	function cubeAt(x,y) {
@@ -175,13 +153,13 @@ function getThreeRenderer(width, height, selector) {
 
 		var mesh = new THREE.Mesh(
 			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
-			new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true })
+			new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
 		);
 		cubes[key] = mesh;
 
 		mesh.position.x = x * CUBESIDE;
 		mesh.position.y = y * CUBESIDE;
-		mesh.position.z = 0;
+		mesh.position.z = 0; // Math.floor(Math.random() * CUBEWIDTH) * CUBESIDE ;
 
 		scene.add( mesh );
 		// camera.lookAt( mesh.position );
@@ -202,7 +180,15 @@ function getThreeRenderer(width, height, selector) {
 	}
 
 	function interval() {
+		// console.log("looking at stuff!");
+		// console.log( scene.children );
+
+		camera.position.z += 10;
+
+		// camera.lookAt ( scene.children[ Math.floor(Math.random() * scene.children.length) ].position );
+
 		renderer.render( scene, camera );
+
 	}
 
 	function onWindowResize() {
@@ -285,10 +271,11 @@ function runConway() {
 	var running = false;
 	var drawing = false;
 
-	var width = 100, height = 80;
+	var width = CUBEWIDTH,
+		height = CUBEHEIGHT;
 
-	width = parseInt( window.innerWidth / 32 );
-	height = parseInt( window.innerHeight / 32 );
+	width = parseInt( window.innerWidth / CUBEWIDTH );
+	height = parseInt( window.innerHeight / CUBEHEIGHT );
 
 	var interfaceContainer = document.getElementsByClassName('interface')[0];
 	var button1 = document.getElementById('run');
@@ -467,12 +454,13 @@ function runConway() {
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 				state.current[x+"_"+y] = {state:false};
-				// state.next[x+"_"+y] = {state: Math.random() > .5 ? true : false};
-				state.next[x+"_"+y] = {state: false};
+				state.next[x+"_"+y] = {state: Math.random() > 0.5 ? true : false};
+				// state.next[x+"_"+y] = {state: false};
 			}
 		}
 
 		// gliderland
+		/*
 		for(var i = 0; i < 400; i++) {
 
 			var curGlider = gliders[randomInt(0, gliders.length)];
@@ -490,6 +478,7 @@ function runConway() {
 			}
 
 		}
+		*/
 
 		forceDraw();
 
@@ -589,7 +578,7 @@ function runConway() {
 		if (!noloop && running) {
 			// intervalWaiting = true; // could defend against doubles here
 			// not working for some reason, deal with this later:
-			setTimeout(interval, 400 ); // 1000 / 60); // optimistic framerate - will not happen
+			setTimeout(interval, 1000 / 60); // optimistic framerate - will not happen
 			// var res = window.requestAnimationFrame(interval);
 			// var res = requestAnimationFrame(interval);
 			// console.log( requestAnimationFrame, res );
