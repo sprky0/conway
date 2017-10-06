@@ -4,5 +4,5 @@ You ever get bored and code up an implementation of the Game of Life?  C'est la 
 
 ## Todo
 
-- draw performance sucks, make it perform better
-- look at decoupling canvas / other render option
+- draw performance can probably be even better
+- how about 3d ?  vertical cloning rules or time as z ? etc
