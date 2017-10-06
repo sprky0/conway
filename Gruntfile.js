@@ -27,8 +27,15 @@ module.exports = function(grunt) {
 			},
 			app: {
 				src: [
-					// 'node_modules/three/build/three.js',
-					// 'src/demo.js'
+
+					// pick a renderer
+					'src/renderer/basic.js',
+					// 'src/renderer/three.js',
+
+					// pick a grid
+					'src/grid/conway.js',
+
+					// main application and interface bindings
 					'src/main.js'
 				],
 				dest: 'docroot/js/main.js'
