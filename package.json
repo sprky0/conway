@@ -1,0 +1,15 @@
+{
+  "name": "conway",
+  "version": "0.0.0",
+  "main": "docroot/index.html",
+  "repository": "git@github.com:sprky0/conway.git",
+  "author": "Avery Brooks <averyjamesbrooks@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "grunt": "^1.0.1",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-jshint": "^1.1.0",
+    "grunt-contrib-watch": "^1.0.0",
+    "three": "^0.87.1"
+  }
+}
