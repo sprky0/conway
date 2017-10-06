@@ -262,50 +262,46 @@ function Conway(gridwidth, gridheight) {
 		// that would reduce our footprint substantially
 
 		var check = state.check; // get a reference to this puppy
-		// console.log(check);
 		state.check = {}; // nuke old one, we will repopulate right now
 
 		// loop 1 - determine the next state based on our current state
 		for(var i in check) {
-		// for(var x = 0; x < width; x++) {
-		//	for(var y = 0; y < height; y++) {
 
-				var x = check[i][0];
-				var y = check[i][1];
+			var x = check[i][0];
+			var y = check[i][1];
 
-				var neighborCount = getCellNeighborCount(x, y);
+			var neighborCount = getCellNeighborCount(x, y);
 
-				// Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
-				if (getCell(x,y).state == true && neighborCount < 2) {
-					// console.log(x + "," + y + ": fewer than two -- underpopulation die")
-					setCellNext(x, y, false);
-					todo.push([x,y,false]);
-				}
+			// Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+			if (getCell(x,y).state == true && neighborCount < 2) {
+				// console.log(x + "," + y + ": fewer than two -- underpopulation die")
+				setCellNext(x, y, false);
+				todo.push([x,y,false]);
+			}
 
-				// Any live cell with two or three live neighbours lives on to the next generation.
-				else if (getCell(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
-					// console.log(x + "," + y + ": two or three -- live ok")
-					setCellNext(x, y, true); // this needs to stay -- track in next round
-					todo.push([x,y,true]); // don't need to refraw this one so this could be removed probably in most uses
-				}
+			// Any live cell with two or three live neighbours lives on to the next generation.
+			else if (getCell(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
+				// console.log(x + "," + y + ": two or three -- live ok")
+				setCellNext(x, y, true); // this needs to stay -- track in next round
+				todo.push([x,y,true]); // don't need to refraw this one so this could be removed probably in most uses
+			}
 
-				// Any live cell with more than three live neighbours dies, as if by overpopulation.
-				else if (getCell(x,y).state == true && neighborCount > 3) {
-					// console.log(x + "," + y + ": live and three -- overpopulation die")
-					setCellNext(x, y, false);
-					todo.push([x,y,false]);
-				}
+			// Any live cell with more than three live neighbours dies, as if by overpopulation.
+			else if (getCell(x,y).state == true && neighborCount > 3) {
+				// console.log(x + "," + y + ": live and three -- overpopulation die")
+				setCellNext(x, y, false);
+				todo.push([x,y,false]);
+			}
 
-				//Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-				else if (getCell(x,y).state == false && neighborCount === 3) {
-					// console.log(x + "," + y + ": dead and three -- reproduction add")
-					setCellNext(x, y, true);
-					todo.push([x,y,true]);
-				}
+			//Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+			else if (getCell(x,y).state == false && neighborCount === 3) {
+				// console.log(x + "," + y + ": dead and three -- reproduction add")
+				setCellNext(x, y, true);
+				todo.push([x,y,true]);
+			}
 
-				loopCount++;
+			loopCount++;
 
-		//	}
 		}
 
 		// console.log("LOOP1 (test) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
@@ -313,9 +309,7 @@ function Conway(gridwidth, gridheight) {
 		loopCount = 0;
 		// var startLoopsMS = new Date().getTime();
 
-		// loop 2 - draw the changes
-		// it might be more performant if we just determined the difference
-		// above and only looped through the known changed cells.  might do this later
+		// this loop can 90% sure be rolled up into the above as it initially was for redraw
 		for(var t = 0; t < todo.length; t++) {
 
 			var changeX = todo[t][0];
