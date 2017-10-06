@@ -17,7 +17,7 @@ function Renderer(width, height, selector) {
 
 	// our cubes should be somewhat relative to available space
 	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
-	// height .. eh
+	// height .. eh whatev
 
 	// Set some camera attributes.
 
@@ -29,7 +29,7 @@ function Renderer(width, height, selector) {
 
 	var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
 
-	camera.position.x = CUBESIDE * (CUBEWIDTH / 2);
+	camera.position.x = CUBESIDE * (CUBEWIDTH  / 2);
 	camera.position.y = CUBESIDE * (CUBEHEIGHT / 2);
 	camera.position.z = 3000;
 
@@ -138,7 +138,7 @@ function Renderer(width, height, selector) {
 	}
 
 	function interval() {
-		// checkRotation();
+		// checkRotation(); // how about like, 'update camera' instead and we check things like, accel / position / keystate
 		renderer.render( scene, camera );
 	}
 

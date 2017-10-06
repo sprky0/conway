@@ -3,7 +3,14 @@
  * Apply rules and so on
  * blah blah blah better docs
  */
-function Conway(width, height) {
+function Conway(gridwidth, gridheight) {
+
+	console.log("GRID INIT W/ ", gridwidth, gridheight);
+
+	var width = gridwidth;
+	var height = gridheight;
+
+	// do we need a local copy of w/h ?
 
 	// refresher on the rules, courtesy Wikipedia https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 	/*
@@ -15,7 +22,9 @@ function Conway(width, height) {
 
 	var state = {
 		current : {},
-		next : {}
+		next : {},
+		check : {},
+		changed : []
 	};
 
 	var neighborMap = [
@@ -28,8 +37,11 @@ function Conway(width, height) {
 	// loop edges
 	var loopXY = true;
 
-	var changed = [];
-	var check = [];
+	// array of points which were changed in the previous interval and need to be re-drawn
+	// var changed = [];
+
+	// points which need to be verified (@todo implement this instead of a full on x/y loop)
+	// var check = [];
 
 	function toggle(x,y) {
 
@@ -41,28 +53,53 @@ function Conway(width, height) {
 
 	}
 
+	function getCellKey(x,y) {
+		return x + "_" + y;
+	}
+
 	function getCell(x,y) {
-		return state.current[x + "_" + y];
+		var key = getCellKey(x,y);
+		return state.current[key];
 	}
 
 	function getCellNext(x, y) {
-		return state.next[x + "_" + y];
+		var key = getCellKey(x,y);
+		return state.next[key];
 	}
 
 	function setCellNext(x, y, newState) {
-		state.next[x+"_"+y].state = newState;
+		var key = getCellKey(x,y);
+		state.next[key].state = newState;
+
+		// on cells need to be watched along with their neighbors
+		if (newState)
+			addWatchCell(x, y);
 	}
 
 	function setCellOff(x, y) {
-		state.current[x + "_" + y].state = false;
-		renderer.setCellOff(x, y);
+		var key = getCellKey(x,y);
+		state.current[key].state = false;
+		// renderer is abstracted now -- this just changed the "live" data
+		// renderer.setCellOff(x, y);
 		// console.log("OFF",x,y);
 	}
 
 	function setCellOn(x, y) {
-		state.current[x + "_" + y].state = true;
-		renderer.setCellOn(x, y);
+		var key = getCellKey(x,y);
+		state.current[key].state = true;
+		// renderer is abstracted now -- this just changed the "live" data
+		// renderer.setCellOn(x, y);
 		// console.log("ON ",x,y);
+	}
+
+	function addWatchCell(x ,y) {
+		// keep track of active cells and cells which need testing (live and live adjacent)
+		// the object/key automatically removes duplicates without caring really
+		var neighbors = getCellNeighborCoordinates(x, y);
+		for(var i = 0; i < neighbors.length; i++) {
+			state.check[getCellKey(neighbors[i][0],neighbors[i][1])] = [neighbors[i][0], neighbors[i][1]];
+		}
+		state.check[getCellKey(x,y)] = [x,y];
 	}
 
 	function random(low, high) {
@@ -71,6 +108,52 @@ function Conway(width, height) {
 
 	function randomInt(low, high) {
 		return Math.floor(random(low, high));
+	}
+
+	/**
+	 * Points which have changed state since in
+	 * last interval and may need redraw
+	 */
+	function getChanged() {
+		// var changedValues;
+		// for(var i = 0; i < changed.length; i++) {
+		// changedValues.push( changed )
+		// }
+		// i want this to include the values also
+		return state.changed;
+	}
+
+	function getChangedFlat() {
+		var changed = getChanged();
+		var changedArray = [];
+		for(var i in getChanged)
+			changedArray = changed[i];
+		return changedArray;
+	}
+
+	function getCellNeighborCoordinates(x, y) {
+
+		var coords = [];
+
+		for(var i = 0; i < neighborMap.length; i++) {
+
+			var curX = x + neighborMap[i][0];
+			var curY = y + neighborMap[i][1];
+
+			if (loopXY) {
+				curX = (width + curX) % width;
+				curY = (height + curY) % height;
+			}
+
+			if (!(curX < 0 || curX >= width || curY < 0 || curY >= height)) {
+				coords.push([curX,curY]);
+			}
+
+		}
+
+		// console.log( coords[0] );
+
+		return coords;
 	}
 
 	function getCellNeighborCount(x, y) {
@@ -114,7 +197,6 @@ function Conway(width, height) {
 			for(var y = 0; y < height; y++) {
 				state.current[x+"_"+y] = {state:false};
 				state.next[x+"_"+y] = {state: false};
-				// state.next[x+"_"+y] = {state: Math.random() > 0.5 ? true : false};
 			}
 		}
 
@@ -154,7 +236,8 @@ function Conway(width, height) {
 				var curX = (width + (glideX + curGlider[g][0])) % width;
 				var curY = (height + (glideY + curGlider[g][1])) % height;
 
-				state.next[curX +"_"+ curY] = {state: true};
+				// we have to set the NEXT state b/c we need to calculate difference for rendering
+				setCellNext(curX, curY, true);
 			}
 
 		}
@@ -164,6 +247,12 @@ function Conway(width, height) {
 
 	function interval(noloop) {
 
+		// clone local copy of check
+		// var _check = check.slice(0);
+		// reset check
+		// check = [];
+
+		// changed cells which require pushing to the 'current' grid
 		var todo = [];
 
 		var loopCount = 0;
@@ -172,9 +261,17 @@ function Conway(width, height) {
 		// this loop sucks.  it shoud realy just loop through pixels which are neighbors of, or are themselves active
 		// that would reduce our footprint substantially
 
+		var check = state.check; // get a reference to this puppy
+		// console.log(check);
+		state.check = {}; // nuke old one, we will repopulate right now
+
 		// loop 1 - determine the next state based on our current state
-		for(var x = 0; x < width; x++) {
-			for(var y = 0; y < height; y++) {
+		for(var i in check) {
+		// for(var x = 0; x < width; x++) {
+		//	for(var y = 0; y < height; y++) {
+
+				var x = check[i][0];
+				var y = check[i][1];
 
 				var neighborCount = getCellNeighborCount(x, y);
 
@@ -182,52 +279,55 @@ function Conway(width, height) {
 				if (getCell(x,y).state == true && neighborCount < 2) {
 					// console.log(x + "," + y + ": fewer than two -- underpopulation die")
 					setCellNext(x, y, false);
-					todo.push([x,y]);
+					todo.push([x,y,false]);
 				}
 
 				// Any live cell with two or three live neighbours lives on to the next generation.
 				else if (getCell(x,y).state == true && neighborCount > 2 && neighborCount <= 3) {
 					// console.log(x + "," + y + ": two or three -- live ok")
-					setCellNext(x, y, true);
-					todo.push([x,y]);
+					setCellNext(x, y, true); // this needs to stay -- track in next round
+					todo.push([x,y,true]); // don't need to refraw this one so this could be removed probably in most uses
 				}
 
 				// Any live cell with more than three live neighbours dies, as if by overpopulation.
 				else if (getCell(x,y).state == true && neighborCount > 3) {
 					// console.log(x + "," + y + ": live and three -- overpopulation die")
 					setCellNext(x, y, false);
-					todo.push([x,y]);
+					todo.push([x,y,false]);
 				}
 
 				//Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 				else if (getCell(x,y).state == false && neighborCount === 3) {
 					// console.log(x + "," + y + ": dead and three -- reproduction add")
 					setCellNext(x, y, true);
-					todo.push([x,y]);
+					todo.push([x,y,true]);
 				}
 
 				loopCount++;
 
-			}
+		//	}
 		}
 
 		// console.log("LOOP1 (test) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
 
 		loopCount = 0;
-		var startLoopsMS = new Date().getTime();
+		// var startLoopsMS = new Date().getTime();
 
 		// loop 2 - draw the changes
 		// it might be more performant if we just determined the difference
 		// above and only looped through the known changed cells.  might do this later
-		for(var i = 0; i < todo.length; i++) {
+		for(var t = 0; t < todo.length; t++) {
 
-			var changeX = todo[i][0];
-			var changeY = todo[i][1];
+			var changeX = todo[t][0];
+			var changeY = todo[t][1];
 
 			var curState = getCell(changeX, changeY).state;
 			var nextState = getCellNext(changeX, changeY).state;
 
 			// migrate next state to current state + draw
+
+			// push these to changed
+			// also push neighbors to things to look @ for next loop
 
 			if (curState != nextState && nextState == true) {
 				setCellOn(changeX, changeY);
@@ -241,17 +341,7 @@ function Conway(width, height) {
 
 		}
 
-		renderer.interval();
-
-		// console.log("LOOP2 (draw) - " + loopCount + " too " + (new Date().getTime() - startLoopMS) + "ms");
-		if (!noloop && running) {
-			// intervalWaiting = true; // could defend against doubles here
-			// not working for some reason, deal with this later:
-			setTimeout(interval, 1000 / 60); // optimistic framerate - will not happen
-			// var res = window.requestAnimationFrame(interval);
-			// var res = requestAnimationFrame(interval);
-			// console.log( requestAnimationFrame, res );
-		}
+		state.changed = todo;
 
 	}
 
@@ -278,21 +368,9 @@ function Conway(width, height) {
 
 	}
 
-	// interface and interaction
-	// canvas.addEventListener('click', handleCanvasClick)
-	/*
-	canvas.addEventListener('mousedown', handleCanvasMousedown);
-	canvas.addEventListener('mouseup', handleCanvasMouseup);
-	canvas.addEventListener('mousemove', handleCanvasMousemove);
-	*/
-	button1.addEventListener('click', handleRunButtonClick);
-	button2.addEventListener('click', handleIntervalButtonClick);
-
-	// camera look for 3d version
-	// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-
-
 	init();
+
+	addRandomGliders( 10 );
 
 	return {
 		interval : interval,

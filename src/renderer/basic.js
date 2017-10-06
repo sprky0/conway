@@ -22,6 +22,11 @@ function Renderer(width, height, selector) {
 	// temporary pixel for drawing
 	var singlePixel = context.createImageData(1,1);
 	var singlePixelData = singlePixel.data;
+	// 
+	// function loadChanged(changed) {
+	// 	for (var i = 0; i < changed.length; i++)
+	//
+	// }
 
 	// old-canvas
 	function drawPixel(x,y,r,g,b) {
