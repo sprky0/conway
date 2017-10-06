@@ -1,12 +1,13 @@
-var CUBEWIDTH = 10;
-var CUBEHEIGHT = 10;
-
-// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-// requestAnimationFrame polyfill by Erik Möller
-// fixes from Paul Irish and Tino Zijdel
+var CUBEWIDTH = 400;
+var CUBEHEIGHT = 400;
 
 function ensureAnimationFrame() {
+
+	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+	// requestAnimationFrame polyfill by Erik Möller
+	// fixes from Paul Irish and Tino Zijdel
+
 	var lastTime = 0;
 	var vendors = ['ms', 'moz', 'webkit', 'o'];
 	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
@@ -123,7 +124,7 @@ function getThreeRenderer(width, height, selector) {
 	// Add the camera to the scene.
 	// scene.add(camera); // do we do this ?
 
-	scene.background = new THREE.Color( 0xffff00 );
+	scene.background = new THREE.Color( 0x121212 );
 
 	// add some crap / geometry
 
@@ -133,8 +134,15 @@ function getThreeRenderer(width, height, selector) {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	container.appendChild( renderer.domElement );
 
-	// var light = new THREE.AmbientLight( 0x404040 ); // soft white light
-	// scene.add( light );
+	var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+	scene.add( light );
+
+	var gridContainer = new THREE.Mesh(
+		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE ),
+		new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true })
+	);
+	gridContainer.position.set(0,0,0);
+	scene.add( gridContainer );
 
 	function getCubeKey(x,y) {
 		return x+"_"+y;
@@ -153,15 +161,17 @@ function getThreeRenderer(width, height, selector) {
 
 		var mesh = new THREE.Mesh(
 			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
-			new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
+			// new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
+			new THREE.MeshLambertMaterial({ color: 0xff0000 })
 		);
 		cubes[key] = mesh;
+
+		gridContainer.add( mesh );
 
 		mesh.position.x = x * CUBESIDE;
 		mesh.position.y = y * CUBESIDE;
 		mesh.position.z = 0; // Math.floor(Math.random() * CUBEWIDTH) * CUBESIDE ;
 
-		scene.add( mesh );
 		// camera.lookAt( mesh.position );
 		// console.log( mesh );
 
@@ -173,22 +183,48 @@ function getThreeRenderer(width, height, selector) {
 
 		var key = getCubeKey(x,y);
 
-		scene.remove( cubes[key] );
+		gridContainer.remove( cubes[key] );
 
 		cubes[key] = null;
 
 	}
 
+	function setCubeColor(x, y, color) {
+		if (!cubeAt(x, y))
+			spawnCube(x, y);
+
+		var key = getCubeKey(x,y);
+
+		cubes[key].material.color.setHex(color);
+
+	}
+
+	function checkRotation() {
+
+		var x = camera.position.x,
+		y = camera.position.y,
+		z = camera.position.z;
+		//
+		// if (keyboard.pressed("left")){
+			camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
+			camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
+		// } else if (keyboard.pressed("right")){
+		// 	camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
+		// 	camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
+		// }
+
+		var rotSpeed = 0.02;
+
+		camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
+		camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
+
+		camera.lookAt(scene.position);
+
+	}
+
 	function interval() {
-		// console.log("looking at stuff!");
-		// console.log( scene.children );
-
-		camera.position.z += 10;
-
-		// camera.lookAt ( scene.children[ Math.floor(Math.random() * scene.children.length) ].position );
-
+		// checkRotation();
 		renderer.render( scene, camera );
-
 	}
 
 	function onWindowResize() {
@@ -198,17 +234,7 @@ function getThreeRenderer(width, height, selector) {
 		renderer.setSize( window.innerWidth, window.innerHeight );
 	}
 
-
-	//
-	// var mesh = new THREE.Mesh(
-	// 	new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
-	// 	new THREE.MeshBasicMaterial( { color: 0x00ff00, wireframe: true } )
-	// );
-	// scene.add( mesh );
-
-
 	window.addEventListener( 'resize', onWindowResize, false );
-
 
 	// draw the initial frame before we start running the animation
 	renderer.render( scene, camera );
@@ -218,32 +244,20 @@ function getThreeRenderer(width, height, selector) {
 		// setPixel
 		setCellOn : function(x,y) {
 			spawnCube(x,y);
+			setCubeColor(x,y, 0x00ff00);
 		},
 		setCellOff : function(x,y) {
-			removeCube(x,y);
+			// removeCube(x,y);
+			setCubeColor(x,y, 0xff0000);
 		}
 	};
 
 }
 
+/**
+ * @todo make this into a constructor for a type of object which accepts an x/y sscale, and exposes methods to get x/y/changed-since-last etc /call interval
+ */
 function runConway() {
-
-	// requestAnimationFrame courtesy http://www.javascriptkit.com/javatutors/requestanimationframe.shtml
-	// thanks!
-	/*
-
-	window.requestAnimationFrame = window.requestAnimationFrame
-		|| window.mozRequestAnimationFrame
-		|| window.webkitRequestAnimationFrame
-		|| window.msRequestAnimationFrame
-		|| function(f){return setTimeout(f, 1000/60)} // simulate calling code 60
-
-	window.cancelAnimationFrame = window.cancelAnimationFrame
-		|| window.mozCancelAnimationFrame
-		|| function(requestID){clearTimeout(requestID)} //fall back
-
-	var requestAnimationFrame = window.requestAnimationFrame;
-	*/
 
 	// refresher on the rules, courtesy Wikipedia https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 	/*
@@ -274,8 +288,8 @@ function runConway() {
 	var width = CUBEWIDTH,
 		height = CUBEHEIGHT;
 
-	width = parseInt( window.innerWidth / CUBEWIDTH );
-	height = parseInt( window.innerHeight / CUBEHEIGHT );
+	// width = parseInt( window.innerWidth / CUBEWIDTH );
+	// height = parseInt( window.innerHeight / CUBEHEIGHT );
 
 	var interfaceContainer = document.getElementsByClassName('interface')[0];
 	var button1 = document.getElementById('run');
@@ -356,61 +370,9 @@ function runConway() {
 
 		}
 
-		// console.log(x ,y, neighborsChecked, neighborCount);
-
 		return neighborCount;
 
 	}
-
-	// canvas specific interaction:
-	// function handleCanvasClick(eve) {
-	// 	eve.preventDefault();
-	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
-	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
-	// 	toggle( Math.floor(x), Math.floor(y) );
-	// }
-	//
-	// function handleCanvasMousedown(eve) {
-	// 	drawing = true;
-	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
-	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
-	// 	toggle( Math.floor(x), Math.floor(y) );
-	// }
-	//
-	// function handleCanvasMouseup(eve) {
-	// 	drawing = false;
-	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
-	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
-	// 	toggle( Math.floor(x), Math.floor(y) );
-	// }
-	//
-	// function handleCanvasMousemove(eve) {
-	//
-	// 	var x = (eve.clientX / eve.target.offsetWidth) * width;
-	// 	var y = (eve.clientY / eve.target.offsetHeight) * height;
-	//
-	// 	if (drawing) {
-	//
-	// 		x = Math.floor(x);
-	// 		y = Math.floor(y);
-	// 		setCellOn(x, y);
-	//
-	// 		for(var i = 0; i < neighborMap.length; i++) {
-	//
-	// 			var curX = x + neighborMap[i][0];
-	// 			var curY = y + neighborMap[i][1];
-	//
-	// 			if (loopXY) {
-	// 				curX = (width + curX) % width;
-	// 				curY = (height + curY) % height;
-	// 			}
-	//
-	// 			setCellOn( curX, curY );
-	//
-	// 		}
-	// 	}
-	//
-	// }
 
 	function handleIntervalButtonClick(eve) {
 
@@ -454,14 +416,13 @@ function runConway() {
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
 				state.current[x+"_"+y] = {state:false};
-				state.next[x+"_"+y] = {state: Math.random() > 0.5 ? true : false};
-				// state.next[x+"_"+y] = {state: false};
+				// state.next[x+"_"+y] = {state: Math.random() > 0.5 ? true : false};
+				state.next[x+"_"+y] = {state: false};
 			}
 		}
 
 		// gliderland
-		/*
-		for(var i = 0; i < 400; i++) {
+		for(var i = 0; i < 2; i++) {
 
 			var curGlider = gliders[randomInt(0, gliders.length)];
 
@@ -478,9 +439,8 @@ function runConway() {
 			}
 
 		}
-		*/
 
-		forceDraw();
+		forcePopulate();
 
 	}
 
@@ -502,6 +462,9 @@ function runConway() {
 
 		var loopCount = 0;
 		var startLoopMS = new Date().getTime();
+
+		// this loop sucks.  it shoud realy just loop through pixels which are neighbors of, or are themselves active
+		// that would reduce our footprint substantially
 
 		// loop 1 - determine the next state based on our current state
 		for(var x = 0; x < width; x++) {
@@ -586,7 +549,7 @@ function runConway() {
 
 	}
 
-	function forceDraw() {
+	function forcePopulate() {
 
 		for(var x = 0; x < width; x++) {
 			for(var y = 0; y < height; y++) {
