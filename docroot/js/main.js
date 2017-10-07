@@ -1,59 +1,169 @@
 /**
- * Renderer blahblah -- mnormal canvas
+ * Renderer blahblah -- THREE js thingie
  * @param integer width
  * @param integer height
  * @param string selector where to add the elements
  */
 function Renderer(width, height, selector) {
 
-	console.log("Setting up a basic CANVAS renderer", width, height, selector);
+	console.log("Setting up a THREE.js renderer", width, height, selector);
 
-	// create canvas
-	// var parent = document.getElementsByTagName('body')[0];
-	var parent = document.querySelector(selector);
-	var canvas = document.createElement('canvas');
-	canvas.classList.add('old-canvas');
-	canvas.width = width;
-	canvas.height = height;
-	parent.appendChild(canvas);
+	// starts empty, fills as it is interacted with
+	var cubes = {};
 
-	var context = canvas.getContext('2d');
+	// we always fill the whole available space regardless of grid scale
+	var WIDTH = window.innerWidth; // width;
+	var HEIGHT = window.innerHeight; // height;
 
-	// temporary pixel for drawing
-	var singlePixel = context.createImageData(1,1);
-	var singlePixelData = singlePixel.data;
-	// 
-	// function loadChanged(changed) {
-	// 	for (var i = 0; i < changed.length; i++)
-	//
-	// }
+	// our cubes should be somewhat relative to available space
+	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
+	// height .. eh whatev
 
-	// old-canvas
-	function drawPixel(x,y,r,g,b) {
+	// Set some camera attributes.
 
-		singlePixelData[0] = r;
-		singlePixelData[1] = g;
-		singlePixelData[2] = b;
-		singlePixelData[3] = 255;
-		context.putImageData( singlePixel, x, y );
+	// Get the DOM element to attach to
+	// var container = document.querySelector(selector);
+
+	var container = document.createElement( 'div' );
+	document.body.appendChild( container );
+
+	var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
+
+	camera.position.x = CUBESIDE * (CUBEWIDTH  / 2);
+	camera.position.y = CUBESIDE * (CUBEHEIGHT / 2);
+	camera.position.z = 3000;
+
+	// camera.lookAt( new THREE.Vector3( WIDTH / 2, HEIGHT / 2, 0 ) );
+	var scene = new THREE.Scene();
+
+	// Add the camera to the scene.
+	// scene.add(camera); // do we do this ?
+
+	scene.background = new THREE.Color( 0x121212 );
+
+	// add some crap / geometry
+
+	scene.matrixAutoUpdate = true;
+	var renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	container.appendChild( renderer.domElement );
+
+	var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+	scene.add( light );
+
+	var gridContainer = new THREE.Mesh(
+		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE ),
+		new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true })
+	);
+	gridContainer.position.set(0,0,0);
+	scene.add( gridContainer );
+
+	function getCubeKey(x,y) {
+		return x+"_"+y;
+	}
+
+	function cubeAt(x,y) {
+		var key = getCubeKey(x,y);
+		return !!cubes[key];
+	}
+
+	function spawnCube(x,y) {
+		if (cubeAt(x,y))
+			return false;
+
+		var key = getCubeKey(x,y);
+
+		var mesh = new THREE.Mesh(
+			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
+			// new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
+			new THREE.MeshLambertMaterial({ color: 0xff0000 })
+		);
+		cubes[key] = mesh;
+
+		gridContainer.add( mesh );
+
+		mesh.position.x = x * CUBESIDE;
+		mesh.position.y = y * CUBESIDE;
+		mesh.position.z = 0; // Math.floor(Math.random() * CUBEWIDTH) * CUBESIDE ;
+
+		// camera.lookAt( mesh.position );
+		// console.log( mesh );
 
 	}
 
-	/**
-	 * Nothing to do here
-	 */
+	function removeCube(x,y) {
+		if (!cubeAt(x,y))
+			return false;
+
+		var key = getCubeKey(x,y);
+
+		gridContainer.remove( cubes[key] );
+
+		cubes[key] = null;
+
+	}
+
+	function setCubeColor(x, y, color) {
+		if (!cubeAt(x, y))
+			spawnCube(x, y);
+
+		var key = getCubeKey(x,y);
+
+		cubes[key].material.color.setHex(color);
+
+	}
+
+	function checkRotation() {
+
+		var x = camera.position.x,
+		y = camera.position.y,
+		z = camera.position.z;
+		//
+		// if (keyboard.pressed("left")){
+			camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
+			camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
+		// } else if (keyboard.pressed("right")){
+		// 	camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
+		// 	camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
+		// }
+
+		var rotSpeed = 0.02;
+
+		camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
+		camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
+
+		camera.lookAt(scene.position);
+
+	}
+
 	function interval() {
-		return;
+		// checkRotation(); // how about like, 'update camera' instead and we check things like, accel / position / keystate
+		renderer.render( scene, camera );
 	}
+
+	function onWindowResize() {
+		console.log('resizing the THREE.js view');
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+	}
+
+	window.addEventListener( 'resize', onWindowResize, false );
+
+	// draw the initial frame before we start running the animation
+	renderer.render( scene, camera );
 
 	return {
 		interval : interval,
 		// setPixel
 		setCellOn : function(x,y) {
-			drawPixel(x,y,0,0,0);
+			spawnCube(x,y);
+			setCubeColor(x,y, 0x00ff00);
 		},
 		setCellOff : function(x,y) {
-			drawPixel(x,y,255,255,255);
+			// removeCube(x,y);
+			setCubeColor(x,y, 0xff0000);
 		}
 	};
 
@@ -435,7 +545,9 @@ function Conway(gridwidth, gridheight) {
 	};
 
 }
-;var CUBEWIDTH = 100;
+;// var CUBEWIDTH  = window.innerWidth;
+// var CUBEHEIGHT = window.innerHeight;
+var CUBEWIDTH  = 100;
 var CUBEHEIGHT = 100;
 
 // function ensureAnimationFrame() {

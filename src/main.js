@@ -1,4 +1,6 @@
-var CUBEWIDTH = 100;
+// var CUBEWIDTH  = window.innerWidth;
+// var CUBEHEIGHT = window.innerHeight;
+var CUBEWIDTH  = 100;
 var CUBEHEIGHT = 100;
 
 // function ensureAnimationFrame() {
