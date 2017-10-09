@@ -15,23 +15,19 @@ function Renderer(width, height, selector) {
 	var WIDTH = window.innerWidth; // width;
 	var HEIGHT = window.innerHeight; // height;
 
-	// our cubes should be somewhat relative to available space
-	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
-	// height .. eh whatev
 
-	// Set some camera attributes.
+	// our cubes should be somewhat relative to available space
+	// ^^ this is true but i don't think it actually works w/ pixel window scale -- need to figure this out better
+	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
 
 	// Get the DOM element to attach to
-	// var container = document.querySelector(selector);
-
-	var container = document.createElement( 'div' );
-	document.body.appendChild( container );
+	var container = document.querySelector(selector);
 
 	var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
 
 	camera.position.x = CUBESIDE * (CUBEWIDTH  / 2);
 	camera.position.y = CUBESIDE * (CUBEHEIGHT / 2);
-	camera.position.z = 3000;
+	camera.position.z = 18000;
 
 	// camera.lookAt( new THREE.Vector3( WIDTH / 2, HEIGHT / 2, 0 ) );
 	var scene = new THREE.Scene();
@@ -53,10 +49,14 @@ function Renderer(width, height, selector) {
 	scene.add( light );
 
 	var gridContainer = new THREE.Mesh(
-		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE ),
+		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE * 2000 ),
 		new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true })
 	);
-	gridContainer.position.set(0,0,0);
+	gridContainer.position.set(
+		(CUBESIDE * CUBEWIDTH / 2),
+		(CUBESIDE * CUBEHEIGHT / 2),
+		0
+	);
 	scene.add( gridContainer );
 
 	function getCubeKey(x,y) {
@@ -75,16 +75,16 @@ function Renderer(width, height, selector) {
 		var key = getCubeKey(x,y);
 
 		var mesh = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
+			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE * 2000 ),
 			// new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
-			new THREE.MeshLambertMaterial({ color: 0xff0000 })
+			new THREE.MeshLambertMaterial({ color: 0xff0000 }) // , wireframe: true })
 		);
 		cubes[key] = mesh;
 
 		gridContainer.add( mesh );
 
-		mesh.position.x = x * CUBESIDE;
-		mesh.position.y = y * CUBESIDE;
+		mesh.position.x = (x * CUBESIDE) - (CUBESIDE * CUBEWIDTH / 2);
+		mesh.position.y = (y * CUBESIDE) - (CUBESIDE * CUBEHEIGHT / 2);
 		mesh.position.z = 0; // Math.floor(Math.random() * CUBEWIDTH) * CUBESIDE ;
 
 		// camera.lookAt( mesh.position );
@@ -114,7 +114,7 @@ function Renderer(width, height, selector) {
 
 	}
 
-	function checkRotation() {
+	function updateCamera() {
 
 		var x = camera.position.x,
 		y = camera.position.y,
@@ -128,17 +128,22 @@ function Renderer(width, height, selector) {
 		// 	camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
 		// }
 
-		var rotSpeed = 0.02;
+		var rotSpeed = 0.01;
 
 		camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
 		camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
 
-		camera.lookAt(scene.position);
+		var lookPos = new THREE.Vector3(
+			CUBESIDE * CUBEWIDTH  / 2,
+			CUBESIDE * CUBEHEIGHT / 2,
+			0
+		);
+		camera.lookAt(lookPos);
 
 	}
 
 	function interval() {
-		// checkRotation(); // how about like, 'update camera' instead and we check things like, accel / position / keystate
+		// updateCamera();
 		renderer.render( scene, camera );
 	}
 
