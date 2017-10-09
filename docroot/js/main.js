@@ -1,174 +1,59 @@
 /**
- * Renderer blahblah -- THREE js thingie
+ * Renderer blahblah -- mnormal canvas
  * @param integer width
  * @param integer height
  * @param string selector where to add the elements
  */
 function Renderer(width, height, selector) {
 
-	console.log("Setting up a THREE.js renderer", width, height, selector);
+	console.log("Setting up a basic CANVAS renderer", width, height, selector);
 
-	// starts empty, fills as it is interacted with
-	var cubes = {};
+	// create canvas
+	// var parent = document.getElementsByTagName('body')[0];
+	var parent = document.querySelector(selector);
+	var canvas = document.createElement('canvas');
+	canvas.classList.add('old-canvas');
+	canvas.width = width;
+	canvas.height = height;
+	parent.appendChild(canvas);
 
-	// we always fill the whole available space regardless of grid scale
-	var WIDTH = window.innerWidth; // width;
-	var HEIGHT = window.innerHeight; // height;
+	var context = canvas.getContext('2d');
 
+	// temporary pixel for drawing
+	var singlePixel = context.createImageData(1,1);
+	var singlePixelData = singlePixel.data;
+	// 
+	// function loadChanged(changed) {
+	// 	for (var i = 0; i < changed.length; i++)
+	//
+	// }
 
-	// our cubes should be somewhat relative to available space
-	// ^^ this is true but i don't think it actually works w/ pixel window scale -- need to figure this out better
-	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
+	// old-canvas
+	function drawPixel(x,y,r,g,b) {
 
-	// Get the DOM element to attach to
-	var container = document.querySelector(selector);
-
-	var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
-
-	camera.position.x = CUBESIDE * (CUBEWIDTH  / 2);
-	camera.position.y = CUBESIDE * (CUBEHEIGHT / 2);
-	camera.position.z = 18000;
-
-	// camera.lookAt( new THREE.Vector3( WIDTH / 2, HEIGHT / 2, 0 ) );
-	var scene = new THREE.Scene();
-
-	// Add the camera to the scene.
-	// scene.add(camera); // do we do this ?
-
-	scene.background = new THREE.Color( 0x121212 );
-
-	// add some crap / geometry
-
-	scene.matrixAutoUpdate = true;
-	var renderer = new THREE.WebGLRenderer( { antialias: true } );
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	container.appendChild( renderer.domElement );
-
-	var light = new THREE.AmbientLight( 0x404040 ); // soft white light
-	scene.add( light );
-
-	var gridContainer = new THREE.Mesh(
-		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE * 2000 ),
-		new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true })
-	);
-	gridContainer.position.set(
-		(CUBESIDE * CUBEWIDTH / 2),
-		(CUBESIDE * CUBEHEIGHT / 2),
-		0
-	);
-	scene.add( gridContainer );
-
-	function getCubeKey(x,y) {
-		return x+"_"+y;
-	}
-
-	function cubeAt(x,y) {
-		var key = getCubeKey(x,y);
-		return !!cubes[key];
-	}
-
-	function spawnCube(x,y) {
-		if (cubeAt(x,y))
-			return false;
-
-		var key = getCubeKey(x,y);
-
-		var mesh = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE * 2000 ),
-			// new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
-			new THREE.MeshLambertMaterial({ color: 0xff0000 }) // , wireframe: true })
-		);
-		cubes[key] = mesh;
-
-		gridContainer.add( mesh );
-
-		mesh.position.x = (x * CUBESIDE) - (CUBESIDE * CUBEWIDTH / 2);
-		mesh.position.y = (y * CUBESIDE) - (CUBESIDE * CUBEHEIGHT / 2);
-		mesh.position.z = 0; // Math.floor(Math.random() * CUBEWIDTH) * CUBESIDE ;
-
-		// camera.lookAt( mesh.position );
-		// console.log( mesh );
+		singlePixelData[0] = r;
+		singlePixelData[1] = g;
+		singlePixelData[2] = b;
+		singlePixelData[3] = 255;
+		context.putImageData( singlePixel, x, y );
 
 	}
 
-	function removeCube(x,y) {
-		if (!cubeAt(x,y))
-			return false;
-
-		var key = getCubeKey(x,y);
-
-		gridContainer.remove( cubes[key] );
-
-		cubes[key] = null;
-
-	}
-
-	function setCubeColor(x, y, color) {
-		if (!cubeAt(x, y))
-			spawnCube(x, y);
-
-		var key = getCubeKey(x,y);
-
-		cubes[key].material.color.setHex(color);
-
-	}
-
-	function updateCamera() {
-
-		var x = camera.position.x,
-		y = camera.position.y,
-		z = camera.position.z;
-		//
-		// if (keyboard.pressed("left")){
-			camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
-			camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
-		// } else if (keyboard.pressed("right")){
-		// 	camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
-		// 	camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
-		// }
-
-		var rotSpeed = 0.01;
-
-		camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
-		camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
-
-		var lookPos = new THREE.Vector3(
-			CUBESIDE * CUBEWIDTH  / 2,
-			CUBESIDE * CUBEHEIGHT / 2,
-			0
-		);
-		camera.lookAt(lookPos);
-
-	}
-
+	/**
+	 * Nothing to do here
+	 */
 	function interval() {
-		// updateCamera();
-		renderer.render( scene, camera );
+		return;
 	}
-
-	function onWindowResize() {
-		console.log('resizing the THREE.js view');
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-		renderer.setSize( window.innerWidth, window.innerHeight );
-	}
-
-	window.addEventListener( 'resize', onWindowResize, false );
-
-	// draw the initial frame before we start running the animation
-	renderer.render( scene, camera );
 
 	return {
 		interval : interval,
 		// setPixel
 		setCellOn : function(x,y) {
-			spawnCube(x,y);
-			setCubeColor(x,y, 0x00ff00);
+			drawPixel(x,y,0,0,0);
 		},
 		setCellOff : function(x,y) {
-			// removeCube(x,y);
-			setCubeColor(x,y, 0xff0000);
+			drawPixel(x,y,255,255,255);
 		}
 	};
 
@@ -375,7 +260,21 @@ function Conway(gridwidth, gridheight) {
 			}
 		}
 
-		forcePopulate();
+		// forcePopulate();
+	}
+
+	function addRandomNoise() {
+
+		// make empty grid
+		for(var x = 0; x < width; x++) {
+			for(var y = 0; y < height; y++) {
+				if (Math.random() > 0.5)
+					setCellNext(x,y,true);
+			}
+		}
+
+		// forcePopulate();
+
 	}
 
 	function addRandomGliders(gcount) {
@@ -417,7 +316,7 @@ function Conway(gridwidth, gridheight) {
 
 		}
 
-		forcePopulate();
+		// forcePopulate();
 	}
 
 	function interval(noloop) {
@@ -539,7 +438,10 @@ function Conway(gridwidth, gridheight) {
 
 	init();
 
-	addRandomGliders( 10 );
+	// addRandomGliders( 10 );
+	addRandomNoise();
+
+	forcePopulate();
 
 	return {
 		interval : interval,

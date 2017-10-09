@@ -18,7 +18,7 @@ function Renderer(width, height, selector) {
 
 	// our cubes should be somewhat relative to available space
 	// ^^ this is true but i don't think it actually works w/ pixel window scale -- need to figure this out better
-	var CUBESIDE = parseInt(WIDTH / CUBEWIDTH);
+	var CUBESIDE = 200; // parseInt(WIDTH / CUBEWIDTH);
 
 	// Get the DOM element to attach to
 	var container = document.querySelector(selector);
@@ -27,7 +27,7 @@ function Renderer(width, height, selector) {
 
 	camera.position.x = CUBESIDE * (CUBEWIDTH  / 2);
 	camera.position.y = CUBESIDE * (CUBEHEIGHT / 2);
-	camera.position.z = 18000;
+	camera.position.z = 12000;
 
 	// camera.lookAt( new THREE.Vector3( WIDTH / 2, HEIGHT / 2, 0 ) );
 	var scene = new THREE.Scene();
@@ -49,7 +49,7 @@ function Renderer(width, height, selector) {
 	scene.add( light );
 
 	var gridContainer = new THREE.Mesh(
-		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE * 2000 ),
+		new THREE.BoxBufferGeometry( CUBESIDE * CUBEWIDTH, CUBESIDE * CUBEHEIGHT, CUBESIDE ),
 		new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true })
 	);
 	gridContainer.position.set(
@@ -75,7 +75,7 @@ function Renderer(width, height, selector) {
 		var key = getCubeKey(x,y);
 
 		var mesh = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE * 2000 ),
+			new THREE.BoxBufferGeometry( CUBESIDE, CUBESIDE, CUBESIDE ),
 			// new THREE.MeshBasicMaterial({ color: 0x000000 }) // , wireframe: true })
 			new THREE.MeshLambertMaterial({ color: 0xff0000 }) // , wireframe: true })
 		);
@@ -86,9 +86,6 @@ function Renderer(width, height, selector) {
 		mesh.position.x = (x * CUBESIDE) - (CUBESIDE * CUBEWIDTH / 2);
 		mesh.position.y = (y * CUBESIDE) - (CUBESIDE * CUBEHEIGHT / 2);
 		mesh.position.z = 0; // Math.floor(Math.random() * CUBEWIDTH) * CUBESIDE ;
-
-		// camera.lookAt( mesh.position );
-		// console.log( mesh );
 
 	}
 
@@ -104,7 +101,7 @@ function Renderer(width, height, selector) {
 
 	}
 
-	function setCubeColor(x, y, color) {
+	function setCubeColor(x, y, color, alpha) {
 		if (!cubeAt(x, y))
 			spawnCube(x, y);
 
@@ -164,11 +161,11 @@ function Renderer(width, height, selector) {
 		// setPixel
 		setCellOn : function(x,y) {
 			spawnCube(x,y);
-			setCubeColor(x,y, 0x00ff00);
+			setCubeColor(x,y, 0x00ff00, 1);
 		},
 		setCellOff : function(x,y) {
 			// removeCube(x,y);
-			setCubeColor(x,y, 0xff0000);
+			setCubeColor(x,y, 0xff0000, 0);
 		}
 	};
 

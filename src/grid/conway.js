@@ -200,7 +200,21 @@ function Conway(gridwidth, gridheight) {
 			}
 		}
 
-		forcePopulate();
+		// forcePopulate();
+	}
+
+	function addRandomNoise() {
+
+		// make empty grid
+		for(var x = 0; x < width; x++) {
+			for(var y = 0; y < height; y++) {
+				if (Math.random() > 0.5)
+					setCellNext(x,y,true);
+			}
+		}
+
+		// forcePopulate();
+
 	}
 
 	function addRandomGliders(gcount) {
@@ -242,7 +256,7 @@ function Conway(gridwidth, gridheight) {
 
 		}
 
-		forcePopulate();
+		// forcePopulate();
 	}
 
 	function interval(noloop) {
@@ -364,7 +378,10 @@ function Conway(gridwidth, gridheight) {
 
 	init();
 
-	addRandomGliders( 10 );
+	// addRandomGliders( 10 );
+	addRandomNoise();
+
+	forcePopulate();
 
 	return {
 		interval : interval,
