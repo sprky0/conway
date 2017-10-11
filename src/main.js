@@ -1,44 +1,5 @@
-// var CUBEWIDTH  = window.innerWidth;
-// var CUBEHEIGHT = window.innerHeight;
-var CUBEWIDTH  = 100;
-var CUBEHEIGHT = 100;
-
-// function ensureAnimationFrame() {
-//
-// 	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// 	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-// 	// requestAnimationFrame polyfill by Erik Möller
-// 	// fixes from Paul Irish and Tino Zijdel
-//
-// 	var lastTime = 0;
-// 	var vendors = ['ms', 'moz', 'webkit', 'o'];
-// 	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-// 		window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-// 		window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-// 	}
-// 	if (!window.requestAnimationFrame) {
-// 		window.requestAnimationFrame = function(callback, element) {
-// 			var currTime = new Date().getTime();
-// 			var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-// 			var id = window.setTimeout(function() { callback(currTime + timeToCall); },timeToCall);
-// 			lastTime = currTime + timeToCall;
-// 			return id;
-// 		};
-// 	}
-// 	if (!window.cancelAnimationFrame) {
-// 		window.cancelAnimationFrame = function(id) {
-// 			clearTimeout(id);
-// 		};
-// 	}
-// }
-//
-// function hasWebGL() {
-// 	return !!window.WebGLRenderingContext &&
-// 		!!document.createElement('canvas').getContext(
-// 			'experimental-webgl',
-// 			{antialias: false}
-// 		);
-// }
+var CUBEWIDTH  = 32;
+var CUBEHEIGHT = 32;
 
 function main() {
 
@@ -110,24 +71,13 @@ function main() {
 
 	}
 
-	// interface and interaction
-	// canvas.addEventListener('click', handleCanvasClick)
-	/*
-	canvas.addEventListener('mousedown', handleCanvasMousedown);
-	canvas.addEventListener('mouseup', handleCanvasMouseup);
-	canvas.addEventListener('mousemove', handleCanvasMousemove);
-	*/
 	button1.addEventListener('click', handleRunButtonClick);
 	button2.addEventListener('click', handleIntervalButtonClick);
 
-	// camera look for 3d version
-	// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	// pass interface interaction through to grid n' renderer ?
+	conway.init();
+	conway.addRandomGliders( 4 );
+	conway.forcePopulate();
 
-	// test scenbe setou anrd crap:
-	// var renderer = getThreeRenderer(window.innerWidth, window.innerHeight, '.display');
-	// conway.interval();
-	// renderer.interval();
 	interval(true);
 
 }

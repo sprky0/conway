@@ -22,13 +22,10 @@ function Renderer(width, height, selector) {
 	// temporary pixel for drawing
 	var singlePixel = context.createImageData(1,1);
 	var singlePixelData = singlePixel.data;
-	// 
-	// function loadChanged(changed) {
-	// 	for (var i = 0; i < changed.length; i++)
-	//
-	// }
 
-	// old-canvas
+	/**
+	 * Change a singel pixel on our canvas
+	 */
 	function drawPixel(x,y,r,g,b) {
 
 		singlePixelData[0] = r;
@@ -175,19 +172,14 @@ function Conway(gridwidth, gridheight) {
 	 * last interval and may need redraw
 	 */
 	function getChanged() {
-		// var changedValues;
-		// for(var i = 0; i < changed.length; i++) {
-		// changedValues.push( changed )
-		// }
-		// i want this to include the values also
-		return state.changed;
+		return state.changed.slice(0);
 	}
 
 	function getChangedFlat() {
 		var changed = getChanged();
 		var changedArray = [];
-		for(var i in getChanged)
-			changedArray = changed[i];
+		for(var i in changed)
+			changedArray.push(changed[i]);
 		return changedArray;
 	}
 
@@ -260,7 +252,6 @@ function Conway(gridwidth, gridheight) {
 			}
 		}
 
-		// forcePopulate();
 	}
 
 	function addRandomNoise() {
@@ -272,8 +263,6 @@ function Conway(gridwidth, gridheight) {
 					setCellNext(x,y,true);
 			}
 		}
-
-		// forcePopulate();
 
 	}
 
@@ -436,63 +425,25 @@ function Conway(gridwidth, gridheight) {
 
 	}
 
-	init();
-
-	// addRandomGliders( 10 );
-	addRandomNoise();
-
-	forcePopulate();
-
 	return {
 		interval : interval,
-		getChanged : getChanged
+		getChanged : getChanged,
+		getChangedFlat : getChangedFlat,
+
+		init : init,
+
+		addRandomGliders : addRandomGliders,
+		addRandomNoise : addRandomNoise,
+
+		forcePopulate : forcePopulate
 		// etc
 		// state setters, bah blah blah
 		// getCell toggleCell setCellOn setCellOff etc etc
 	};
 
 }
-;// var CUBEWIDTH  = window.innerWidth;
-// var CUBEHEIGHT = window.innerHeight;
-var CUBEWIDTH  = 100;
-var CUBEHEIGHT = 100;
-
-// function ensureAnimationFrame() {
-//
-// 	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// 	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-// 	// requestAnimationFrame polyfill by Erik Möller
-// 	// fixes from Paul Irish and Tino Zijdel
-//
-// 	var lastTime = 0;
-// 	var vendors = ['ms', 'moz', 'webkit', 'o'];
-// 	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-// 		window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-// 		window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-// 	}
-// 	if (!window.requestAnimationFrame) {
-// 		window.requestAnimationFrame = function(callback, element) {
-// 			var currTime = new Date().getTime();
-// 			var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-// 			var id = window.setTimeout(function() { callback(currTime + timeToCall); },timeToCall);
-// 			lastTime = currTime + timeToCall;
-// 			return id;
-// 		};
-// 	}
-// 	if (!window.cancelAnimationFrame) {
-// 		window.cancelAnimationFrame = function(id) {
-// 			clearTimeout(id);
-// 		};
-// 	}
-// }
-//
-// function hasWebGL() {
-// 	return !!window.WebGLRenderingContext &&
-// 		!!document.createElement('canvas').getContext(
-// 			'experimental-webgl',
-// 			{antialias: false}
-// 		);
-// }
+;var CUBEWIDTH  = 32;
+var CUBEHEIGHT = 32;
 
 function main() {
 
@@ -564,24 +515,13 @@ function main() {
 
 	}
 
-	// interface and interaction
-	// canvas.addEventListener('click', handleCanvasClick)
-	/*
-	canvas.addEventListener('mousedown', handleCanvasMousedown);
-	canvas.addEventListener('mouseup', handleCanvasMouseup);
-	canvas.addEventListener('mousemove', handleCanvasMousemove);
-	*/
 	button1.addEventListener('click', handleRunButtonClick);
 	button2.addEventListener('click', handleIntervalButtonClick);
 
-	// camera look for 3d version
-	// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	// pass interface interaction through to grid n' renderer ?
+	conway.init();
+	conway.addRandomGliders( 4 );
+	conway.forcePopulate();
 
-	// test scenbe setou anrd crap:
-	// var renderer = getThreeRenderer(window.innerWidth, window.innerHeight, '.display');
-	// conway.interval();
-	// renderer.interval();
 	interval(true);
 
 }

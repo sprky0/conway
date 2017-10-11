@@ -115,19 +115,14 @@ function Conway(gridwidth, gridheight) {
 	 * last interval and may need redraw
 	 */
 	function getChanged() {
-		// var changedValues;
-		// for(var i = 0; i < changed.length; i++) {
-		// changedValues.push( changed )
-		// }
-		// i want this to include the values also
-		return state.changed;
+		return state.changed.slice(0);
 	}
 
 	function getChangedFlat() {
 		var changed = getChanged();
 		var changedArray = [];
-		for(var i in getChanged)
-			changedArray = changed[i];
+		for(var i in changed)
+			changedArray.push(changed[i]);
 		return changedArray;
 	}
 
@@ -200,7 +195,6 @@ function Conway(gridwidth, gridheight) {
 			}
 		}
 
-		// forcePopulate();
 	}
 
 	function addRandomNoise() {
@@ -212,8 +206,6 @@ function Conway(gridwidth, gridheight) {
 					setCellNext(x,y,true);
 			}
 		}
-
-		// forcePopulate();
 
 	}
 
@@ -376,16 +368,17 @@ function Conway(gridwidth, gridheight) {
 
 	}
 
-	init();
-
-	// addRandomGliders( 10 );
-	addRandomNoise();
-
-	forcePopulate();
-
 	return {
 		interval : interval,
-		getChanged : getChanged
+		getChanged : getChanged,
+		getChangedFlat : getChangedFlat,
+
+		init : init,
+
+		addRandomGliders : addRandomGliders,
+		addRandomNoise : addRandomNoise,
+
+		forcePopulate : forcePopulate
 		// etc
 		// state setters, bah blah blah
 		// getCell toggleCell setCellOn setCellOff etc etc
