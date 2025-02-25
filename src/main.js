@@ -1,5 +1,5 @@
-var CUBEWIDTH  = 32;
-var CUBEHEIGHT = 32;
+var CUBEWIDTH  = 160; // Math.floor( Math.random() * window.innerWidth);
+var CUBEHEIGHT = 90; // Math.floor( Math.random() * window.innerHeight);
 
 function main() {
 
@@ -66,7 +66,7 @@ function main() {
 		// loop!
 		if (!noloop && running) {
 			// intervalWaiting = true; // could defend against doubles here
-			setTimeout(interval, 1000 / 60); // optimistic framerate - will not happen
+			setTimeout(interval, 1000 / 30); // optimistic framerate - will not happen
 		}
 
 	}
