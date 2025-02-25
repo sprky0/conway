@@ -30,11 +30,14 @@ module.exports = function(grunt) {
 				src: [
 
 					// pick a renderer
-					'src/renderer/basic.js',
-					// 'src/renderer/three.js',
+					// 'src/renderer/basic.js',
+					'src/renderer/three.js',
 
 					// pick a grid
 					'src/grid/conway.js',
+
+					// optional montioring script
+					'src/monitor.js',
 
 					// main application and interface bindings
 					'src/main.js'
