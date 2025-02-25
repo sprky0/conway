@@ -1,181 +1,224 @@
 /**
- * Renderer blahblah -- THREE js thingie
+ * Renderer using monospace font blocks for Conway's Game of Life
  * @param integer width
  * @param integer height
  * @param string selector where to add the elements
  */
 function Renderer(width, height, selector) {
-
-	console.log("Setting up a THREE.js renderer", width, height, selector);
-
-	// Keep original variable names for compatibility
-	var cubes = {};
-
-	// we always fill the whole available space regardless of grid scale
-	var WIDTH = window.innerWidth;
-	var HEIGHT = window.innerHeight;
-
-	// Calculate cube size based on available space
-	var CUBESIDE = Math.min(
-		(WIDTH * 0.8) / width,
-		(HEIGHT * 0.8) / height,
-		200 // Keep the original max size
-	);
+	console.log("Setting up a Monospace Block renderer", width, height, selector);
 
 	// Get the DOM element to attach to
 	var container = document.querySelector(selector);
 
-	var camera = new THREE.PerspectiveCamera(1, window.innerWidth / window.innerHeight, 1, 15000);
+	// Create the grid container
+	var gridElement = document.createElement('div');
+	gridElement.className = 'monospace-grid';
+	gridElement.style.fontFamily = 'monospace';
+	gridElement.style.lineHeight = '1';
+	gridElement.style.whiteSpace = 'pre';
+	gridElement.style.fontSize = calculateOptimalFontSize(width, height) + 'px';
+	gridElement.style.textAlign = 'center';
+	gridElement.style.userSelect = 'none';
+	gridElement.style.overflow = 'hidden';
+	gridElement.style.backgroundColor = '#000';
+	gridElement.style.color = '#fff';
+	gridElement.style.padding = '20px';
+	gridElement.style.borderRadius = '8px';
+	gridElement.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.4)';
+	gridElement.style.position = 'absolute';
+	gridElement.style.top = '50%';
+	gridElement.style.left = '50%';
+	gridElement.style.transform = 'translate(-50%, -50%)';
 
-	camera.position.x = CUBESIDE * (width / 2);
-	camera.position.y = CUBESIDE * (height / 2);
-	camera.position.z = 12000;
 
-	var scene = new THREE.Scene();
 
-	scene.background = new THREE.Color(0x121212);
+	// Create rows and cells
+	var cells = [];
+	var cellElements = [];
 
-	// Performance optimization: Use scene.matrixAutoUpdate as in original
-	scene.matrixAutoUpdate = true;
+	// Initialize the grid
+	function initializeGrid() {
+		gridElement.innerHTML = '';
+		cells = [];
+		cellElements = [];
 
-	var renderer = new THREE.WebGLRenderer({
-		antialias: true,
-		// Performance improvements while maintaining API
-		powerPreference: 'high-performance',
-		precision: 'mediump'
-	});
-	renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	container.appendChild(renderer.domElement);
+		for (var y = 0; y < height; y++) {
+			var rowElement = document.createElement('div');
+			var rowCells = [];
+			var rowCellElements = [];
 
-	var light = new THREE.AmbientLight(0x404040);
-	scene.add(light);
+			for (var x = 0; x < width; x++) {
+				var cellElement = document.createElement('span');
+				cellElement.textContent = '·'; // Default character for dead cells
+				cellElement.dataset.x = x;
+				cellElement.dataset.y = y;
+				cellElement.style.display = 'inline-block';
+				cellElement.style.width = '1ch';
+				cellElement.style.height = '1em';
+				cellElement.style.transition = 'color 0.1s ease';
 
-	// Add directional light for better 3D appearance - doesn't change API
-	var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-	directionalLight.position.set(1, 1, 1).normalize();
-	scene.add(directionalLight);
+				rowElement.appendChild(cellElement);
+				rowCells.push(false); // All cells start dead
+				rowCellElements.push(cellElement);
+			}
 
-	var gridContainer = new THREE.Mesh(
-		new THREE.BoxBufferGeometry(CUBESIDE * width, CUBESIDE * height, CUBESIDE),
-		new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true })
-	);
-	gridContainer.position.set(
-		(CUBESIDE * width / 2),
-		(CUBESIDE * height / 2),
-		0
-	);
-	scene.add(gridContainer);
+			gridElement.appendChild(rowElement);
+			cells.push(rowCells);
+			cellElements.push(rowCellElements);
+		}
 
-	// Create materials once to reuse - performance optimization that doesn't change API
-	var aliveMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-	var deadMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
-
-	// Create a single geometry to reuse - performance optimization that doesn't change API
-	var cubeGeometry = new THREE.BoxBufferGeometry(CUBESIDE, CUBESIDE, CUBESIDE);
-
-	function getCubeKey(x, y) {
-		return x + "_" + y; // Keep original format
+		container.appendChild(gridElement);
 	}
 
-	function cubeAt(x, y) {
-		var key = getCubeKey(x, y);
-		return !!cubes[key];
+	// Calculate the optimal font size based on window size and grid dimensions
+	function calculateOptimalFontSize(gridWidth, gridHeight) {
+		var windowWidth = window.innerWidth * 0.8; // Use 80% of window width
+		var windowHeight = window.innerHeight * 0.8; // Use 80% of window height
+
+		var widthBasedSize = Math.floor(windowWidth / gridWidth);
+		var heightBasedSize = Math.floor(windowHeight / gridHeight);
+
+		// Choose the smaller of the two to ensure it fits
+		return Math.min(widthBasedSize, heightBasedSize, 24); // Max size of 24px
 	}
 
-	function spawnCube(x, y) {
-		if (cubeAt(x, y))
-			return false;
+	// Different character sets for cells
+	var characterSets = [
+		{ alive: '█', dead: '·' }, // Block and dot
+		{ alive: '■', dead: '□' }, // Filled and empty squares
+		{ alive: '●', dead: '○' }, // Filled and empty circles
+		{ alive: '#', dead: ' ' }, // Hash and space
+		{ alive: '@', dead: ' ' }  // At symbol and space
+	];
 
-		var key = getCubeKey(x, y);
+	// Select a character set
+	var activeCharSet = characterSets[0];
 
-		var mesh = new THREE.Mesh(
-			cubeGeometry,
-			new THREE.MeshLambertMaterial({ color: 0xff0000 })
-		);
-		cubes[key] = mesh;
+	// Function to cycle through character sets
+	function cycleCharacterSet() {
+		var currentIndex = characterSets.indexOf(activeCharSet);
+		var nextIndex = (currentIndex + 1) % characterSets.length;
+		activeCharSet = characterSets[nextIndex];
 
-		gridContainer.add(mesh);
-
-		mesh.position.x = (x * CUBESIDE) - (CUBESIDE * width / 2);
-		mesh.position.y = (y * CUBESIDE) - (CUBESIDE * height / 2);
-		mesh.position.z = 0;
+		// Update all cells with new characters
+		for (var y = 0; y < height; y++) {
+			for (var x = 0; x < width; x++) {
+				var isAlive = cells[y][x];
+				cellElements[y][x].textContent = isAlive ? activeCharSet.alive : activeCharSet.dead;
+			}
+		}
 	}
 
-	function removeCube(x, y) {
-		if (!cubeAt(x, y))
-			return false;
+	// Add a button to cycle through character sets
+	var cycleButton = document.createElement('button');
+	cycleButton.textContent = 'Change Style';
+	cycleButton.style.position = 'absolute';
+	cycleButton.style.bottom = '10px';
+	cycleButton.style.right = '10px';
+	cycleButton.style.zIndex = '1000';
+	cycleButton.style.padding = '8px 12px';
+	cycleButton.style.borderRadius = '4px';
+	cycleButton.style.border = 'none';
+	cycleButton.style.backgroundColor = '#333';
+	cycleButton.style.color = 'white';
+	cycleButton.style.cursor = 'pointer';
+	cycleButton.addEventListener('click', cycleCharacterSet);
+	document.body.appendChild(cycleButton);
 
-		var key = getCubeKey(x, y);
+	// Color themes
+	var colorThemes = [
+		{ background: '#000000', alive: '#FFFFFF', dead: '#333333' }, // Classic
+		{ background: '#0a0a2a', alive: '#00ff00', dead: '#003300' }, // Matrix
+		{ background: '#2a0a0a', alive: '#ff0000', dead: '#330000' }, // Red
+		{ background: '#0a2a0a', alive: '#00ffff', dead: '#003333' }, // Cyan
+		{ background: '#ffffff', alive: '#000000', dead: '#cccccc' }  // Inverted
+	];
 
-		gridContainer.remove(cubes[key]);
+	var activeColorTheme = colorThemes[0];
 
-		// Performance optimization: explicitly dispose the object
-		cubes[key].geometry = undefined;
-		cubes[key].material.dispose();
-		cubes[key].material = undefined;
+	// Function to cycle through color themes
+	function cycleColorTheme() {
+		var currentIndex = colorThemes.indexOf(activeColorTheme);
+		var nextIndex = (currentIndex + 1) % colorThemes.length;
+		activeColorTheme = colorThemes[nextIndex];
 
-		cubes[key] = null;
-		delete cubes[key]; // Ensure it's removed from the object
+		// Update grid colors
+		updateGridColors();
 	}
 
-	function setCubeColor(x, y, color) {
-		if (!cubeAt(x, y))
-			spawnCube(x, y);
+	// Update grid with current color theme
+	function updateGridColors() {
+		gridElement.style.backgroundColor = activeColorTheme.background;
 
-		var key = getCubeKey(x, y);
-
-		cubes[key].material.color.setHex(color);
+		for (var y = 0; y < height; y++) {
+			for (var x = 0; x < width; x++) {
+				var isAlive = cells[y][x];
+				cellElements[y][x].style.color = isAlive ? activeColorTheme.alive : activeColorTheme.dead;
+			}
+		}
 	}
 
-	// Performance optimization: simplified camera rotation that preserves behavior
-	function updateCamera() {
-		var x = camera.position.x,
-			z = camera.position.z;
+	// Add a button to cycle through color themes
+	var themeButton = document.createElement('button');
+	themeButton.textContent = 'Change Colors';
+	themeButton.style.position = 'absolute';
+	themeButton.style.bottom = '10px';
+	themeButton.style.right = '120px';
+	themeButton.style.zIndex = '1000';
+	themeButton.style.padding = '8px 12px';
+	themeButton.style.borderRadius = '4px';
+	themeButton.style.border = 'none';
+	themeButton.style.backgroundColor = '#333';
+	themeButton.style.color = 'white';
+	themeButton.style.cursor = 'pointer';
+	themeButton.addEventListener('click', cycleColorTheme);
+	document.body.appendChild(themeButton);
 
-		var rotSpeed = 0.001;
-
-		camera.position.x = x * Math.cos(rotSpeed) - z * Math.sin(rotSpeed);
-		camera.position.z = z * Math.cos(rotSpeed) + x * Math.sin(rotSpeed);
-
-		var lookPos = new THREE.Vector3(
-			CUBESIDE * width / 2,
-			CUBESIDE * height / 2,
-			0
-		);
-		camera.lookAt(lookPos);
-	}
-
-	// Keep original function unchanged
-	function interval() {
-		updateCamera();
-		renderer.render(scene, camera);
-	}
-
-	// Keep original function unchanged
+	// Handle window resize
 	function onWindowResize() {
-		console.log('resizing the THREE.js view');
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-		renderer.setSize(window.innerWidth, window.innerHeight);
+		gridElement.style.fontSize = calculateOptimalFontSize(width, height) + 'px';
 	}
 
-	window.addEventListener('resize', onWindowResize, false);
+	window.addEventListener('resize', onWindowResize);
 
-	// draw the initial frame before we start running the animation
-	renderer.render(scene, camera);
+	// Initialize the grid
+	initializeGrid();
 
-	// Keep exactly the same return API as original
+	// Interface methods
+	function setCellOn(x, y) {
+		if (x >= 0 && x < width && y >= 0 && y < height) {
+			cells[y][x] = true;
+			cellElements[y][x].textContent = activeCharSet.alive;
+			cellElements[y][x].style.color = activeColorTheme.alive;
+
+			// Add a small animation effect
+			cellElements[y][x].style.transform = 'scale(1.2)';
+			setTimeout(() => {
+				if (cellElements[y][x]) {
+					cellElements[y][x].style.transform = 'scale(1)';
+				}
+			}, 100);
+		}
+	}
+
+	function setCellOff(x, y) {
+		if (x >= 0 && x < width && y >= 0 && y < height) {
+			cells[y][x] = false;
+			cellElements[y][x].textContent = activeCharSet.dead;
+			cellElements[y][x].style.color = activeColorTheme.dead;
+		}
+	}
+
+	// Nothing to do in interval for this renderer
+	function interval() {
+		return;
+	}
+
+	// Return the same API as other renderers
 	return {
 		interval: interval,
-		setCellOn: function (x, y) {
-			spawnCube(x, y);
-			setCubeColor(x, y, 0x00ff00, 1);
-		},
-		setCellOff: function (x, y) {
-			// Uses original behavior - don't remove, just change color
-			setCubeColor(x, y, 0xff0000, 0);
-		}
+		setCellOn: setCellOn,
+		setCellOff: setCellOff
 	};
 };/**
  * Generate a grid
